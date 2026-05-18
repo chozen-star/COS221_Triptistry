@@ -63,6 +63,8 @@ CREATE TABLE `agency` (
   `Rating` decimal(2,1) DEFAULT NULL CHECK (`Rating` >= 0 and `Rating` <= 5),
   `Type` enum('Full Service','Boutique','OTA') NOT NULL,
   `CreatedAt` date NOT NULL,
+  `salt` varchar(64) NOT NULL,
+  `passwordhash` varchar(256) NOT NULL,
   PRIMARY KEY (`AgencyID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_uca1400_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -75,11 +77,11 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `agency` WRITE;
 /*!40000 ALTER TABLE `agency` DISABLE KEYS */;
 INSERT INTO `agency` VALUES
-(1,'Wanderlust Travel Co.','www.wanderlust.com',4.8,'Full Service','2024-01-15'),
-(2,'Boutique Escapes','www.boutiqueescapes.com',4.9,'Boutique','2024-02-20'),
-(3,'TravelGenie','www.travelgenie.com',4.5,'OTA','2024-03-10'),
-(4,'Global Concierge','www.globalconcierge.com',4.7,'Full Service','2024-04-05'),
-(5,'Luxury Hideaways','www.luxuryhideaways.com',5.0,'Boutique','2024-05-12');
+(1,'Wanderlust Travel Co.','www.wanderlust.com',4.8,'Full Service','2024-01-15','',''),
+(2,'Boutique Escapes','www.boutiqueescapes.com',4.9,'Boutique','2024-02-20','',''),
+(3,'TravelGenie','www.travelgenie.com',4.5,'OTA','2024-03-10','',''),
+(4,'Global Concierge','www.globalconcierge.com',4.7,'Full Service','2024-04-05','',''),
+(5,'Luxury Hideaways','www.luxuryhideaways.com',5.0,'Boutique','2024-05-12','','');
 /*!40000 ALTER TABLE `agency` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -900,6 +902,7 @@ CREATE TABLE `traveler` (
   `PasswordHash` varchar(255) NOT NULL,
   `DOB` date NOT NULL,
   `CreatedAt` date NOT NULL,
+  `salt` varchar(64) NOT NULL,
   PRIMARY KEY (`TravelerID`),
   UNIQUE KEY `PhoneNumber` (`PhoneNumber`),
   UNIQUE KEY `Email` (`Email`),
@@ -915,11 +918,11 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `traveler` WRITE;
 /*!40000 ALTER TABLE `traveler` DISABLE KEYS */;
 INSERT INTO `traveler` VALUES
-(1,'+14155550101','John','Smith','john.smith@email.com','P12345678','hash_john123','1985-06-15','2024-01-20'),
-(2,'+14155550102','Maria','Garcia','maria.garcia@email.com','P87654321','hash_maria456','1992-03-22','2024-02-15'),
-(3,'+14155550103','David','Kim','david.kim@email.com','P98765432','hash_david789','1998-11-10','2024-03-10'),
-(4,'+14155550104','Sarah','Johnson','sarah.johnson@email.com','P54321987','hash_sarah321','1989-09-03','2024-04-05'),
-(5,'+14155550105','Ahmed','Patel','ahmed.patel@email.com','P13579246','hash_ahmed654','1995-07-18','2024-05-12');
+(1,'+14155550101','John','Smith','john.smith@email.com','P12345678','hash_john123','1985-06-15','2024-01-20',''),
+(2,'+14155550102','Maria','Garcia','maria.garcia@email.com','P87654321','hash_maria456','1992-03-22','2024-02-15',''),
+(3,'+14155550103','David','Kim','david.kim@email.com','P98765432','hash_david789','1998-11-10','2024-03-10',''),
+(4,'+14155550104','Sarah','Johnson','sarah.johnson@email.com','P54321987','hash_sarah321','1989-09-03','2024-04-05',''),
+(5,'+14155550105','Ahmed','Patel','ahmed.patel@email.com','P13579246','hash_ahmed654','1995-07-18','2024-05-12','');
 /*!40000 ALTER TABLE `traveler` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -973,4 +976,4 @@ SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
--- Dump completed on 2026-05-18 10:32:55
+-- Dump completed on 2026-05-18 10:46:34
