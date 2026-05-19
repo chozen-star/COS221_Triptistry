@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register Traveller — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <aside class="login-side traveller">
+      <a href="index.html" class="logo" style="color:white;">Trip<span style="color:var(--ink);">istry</span></a>
+      <div>
+        <span class="badge">Traveller Portal</span>
+        <h1 style="margin-top:18px;">Join the<br/><span class="ghost">adventure.</span></h1>
+        <p style="margin-top:18px; max-width:360px; opacity:0.92;">Create your account and start exploring curated travel packages.</p>
+      </div>
+      <span class="eyebrow" style="color:rgba(255,255,255,0.7);">© 2026 Tripistry</span>
+    </aside>
+
+    <main class="login-form">
+      <a href="index.html" class="back">← Back to home</a>
+      <h2>Create a traveller account.</h2>
+      <p class="sub">Fill in your details to get started.</p>
+
+      <form id="regForm">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <label class="field">
+            <span>First Name</span>
+            <input type="text" name="Name" required />
+          </label>
+          <label class="field">
+            <span>Last Name</span>
+            <input type="text" name="Lname" required />
+          </label>
+        </div>
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="Email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" required minlength="6" />
+        </label>
+        <label class="field">
+          <span>Phone Number</span>
+          <input type="text" name="PhoneNumber" required />
+        </label>
+                <label class="field">
+          <span>Date of Birth</span>
+          <input type="date" name="DOB" required />
+        </label>
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+
+      <p class="alt">Already have an account? <a href="login-traveller.html">Log in</a></p>
+      <p class="alt" style="margin-top:6px;">Are you an agency? <a href="register-agency.html">Register as agency →</a></p>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('regForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      try {
+        const res = await fetch('api/register_traveller.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Account created! Redirecting to login...');
+          window.location.href = 'login-traveller.html';
+        } else {
+          alert(data.error || 'Registration failed');
+        }
+      } catch (err) {
+        alert('Network error. Is XAMPP running?');
+      }
+    });
+  </script>
+</body>
+</html>
