@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Register Agency — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <aside class="login-side agency">
+      <a href="index.html" class="logo" style="color:white;">Trip<span style="color:var(--ink);">istry</span></a>
+      <div>
+        <span class="badge">Agency Portal</span>
+        <h1 style="margin-top:18px;">List trips.<br/><span class="ghost">Grow bookings.</span></h1>
+        <p style="margin-top:18px; max-width:360px; opacity:0.92;">Register your agency and start publishing travel packages to thousands of travellers.</p>
+      </div>
+      <span class="eyebrow" style="color:rgba(255,255,255,0.7);">© 2026 Tripistry</span>
+    </aside>
+
+    <main class="login-form">
+      <a href="index.html" class="back">← Back to home</a>
+      <h2>Register your agency.</h2>
+      <p class="sub">Get verified and start listing packages.</p>
+
+      <form id="regForm">
+        <label class="field">
+          <span>Agency Name</span>
+          <input type="text" name="Name" required />
+        </label>
+        <label class="field">
+          <span>Website URL</span>
+          <input type="text" name="Website" required placeholder="www.example.com" />
+        </label>
+        <label class="field">
+          <span>Agency Type</span>
+          <select name="Type" required>
+            <option value="">Select type...</option>
+            <option value="Full Service">Full Service</option>
+            <option value="Boutique">Boutique</option>
+            <option value="OTA">OTA</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" required minlength="6" />
+        </label>
+        <button type="submit" class="btn btn-agency">Register Agency</button>
+      </form>
+
+      <p class="alt">Already registered? <a href="login-agency.html">Sign in</a></p>
+      <p class="alt" style="margin-top:6px;">Are you a traveller? <a href="register-traveller.html">Register as traveller →</a></p>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('regForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      try {
+        const res = await fetch('api/register_agency.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Agency registered! Redirecting to login...');
+          window.location.href = 'login-agency.html';
+        } else {
+          alert(data.error || 'Registration failed');
+        }
+      } catch (err) {
+        alert('Network error. Is XAMPP running?');
+      }
+    });
+  </script>
+</body>
+</html>

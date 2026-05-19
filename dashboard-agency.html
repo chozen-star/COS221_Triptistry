@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agency Dashboard — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+
+  <style>
+  .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  }
+  .btn {
+    transition: transform 0.1s ease;
+  }
+  .btn:active {
+    transform: scale(0.96);
+  }
+</style>
+
+</head>
+<body>
+<div class="dash-wrap">
+  <aside class="dash-side">
+    <a href="index.html" class="logo">Trip<span style="color:var(--primary);">istry</span></a>
+    <div class="user-info">AGENCY</div>
+    <div class="user-name" id="sideName">---</div>
+    <ul class="dash-nav">
+      <li><a href="#" class="active" data-tab="packages">My Packages</a></li>
+      <li><a href="#" data-tab="grouptrips">Group Trips</a></li>
+      <li><a href="#" data-tab="destinations">Destinations</a></li>
+      <li><a href="#" data-tab="flights">Flights</a></li>
+      <li><a href="#" data-tab="accommodations">Accommodations</a></li>
+      <li><a href="#" data-tab="attractions">Attractions</a></li>
+      <li><a href="#" data-tab="restaurants">Restaurants</a></li>
+      <a href="#" class="logout-link" onclick="logout()">Logout</a>
+    </ul>
+  </aside>
+
+  <main class="dash-main" id="mainContent"></main>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+const API = 'api/';
+let currentUser = null;
+
+async function apiCall(url, options = {}) {
+  const res = await fetch(API + url, { credentials: 'same-origin', ...options });
+  if (res.status === 401) { window.location.href = 'login-agency.html'; return null; }
+  const data = await res.json().catch(() => ({}));
+  return { status: res.status, data };
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+async function init() {
+  const r = await apiCall('session.php');
+  if (!r || r.status !== 200) return;
+  currentUser = r.data;
+  document.getElementById('sideName').textContent = r.data.name || '---';
+  loadTab('packages');
+}
+
+document.querySelectorAll('.dash-nav a[data-tab]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.dash-nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    loadTab(a.dataset.tab);
+  });
+});
+
+async function loadTab(tab) {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    switch (tab) {
+      case 'packages': await loadPackages(); break;
+      case 'grouptrips': await loadGroupTrips(); break;
+      case 'destinations': await loadBrowse('destinations.php', 'Destinations', d => ({ title: d.Name, sub: d.Country + ', ' + d.Region, extra: d.Description ? d.Description.substring(0,100) : '' })); break;
+      case 'flights': await loadFlights(); break;
+      case 'accommodations': await loadBrowse('accommodations.php', 'Accommodations', d => ({ title: d.Location || ('#'+d.AccommodationID), sub: d.AccommodationType, extra: 'R'+Number(d.Price||0).toLocaleString() })); break;
+      case 'attractions': await loadBrowse('attractions.php', 'Attractions', d => ({ title: d.Name, sub: d.Type + ' - ' + d.Location, extra: 'R'+Number(d.Price||0).toLocaleString() })); break;
+      case 'restaurants': await loadBrowse('restaurants.php', 'Restaurants', d => ({ title: d.Name, sub: d.PriceRange, extra: (d.CuisineTypes||'') + ' | ' + (d.Locations||'') })); break;
+    }
+  } catch (e) { main.innerHTML = '<div class="empty"><strong>Error</strong></div>'; }
+}
+
+// ---- PACKAGES CRUD ----
+async function loadPackages() {
+  const r = await apiCall('packages.php');
+  let html = '<h2>My Packages</h2>';
+  html += '<button class="btn btn-agency" onclick="showPackageForm()" style="margin-bottom:20px;">+ Create New Package</button>';
+  html += '<div id="pkgFormArea"></div>';
+  html += '<div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>Type</th><th>Price</th><th>Lodging</th><th>Service</th><th>Activities</th><th>Actions</th></tr>';
+  if (Array.isArray(r.data)) {
+    r.data.forEach(p => {
+      html += `<tr>
+        <td>${p.PackageID}</td><td>${p.Type}</td><td>R${Number(p.Price).toLocaleString()}</td>
+        <td>${p.IncludesLodging ? '✓' : '✗'}</td><td>${p.IncludesService ? '✓' : '✗'}</td><td>${p.IncludesActivities ? '✓' : '✗'}</td>
+        <td>
+          <button class="btn" style="padding:6px 10px;font-size:10px;" onclick="editPackage(${p.PackageID})">Edit</button>
+          <button class="btn btn-primary" style="padding:6px 10px;font-size:10px;" onclick="deletePackage(${p.PackageID})">Delete</button>
+        </td>
+      </tr>`;
+    });
+  }
+  html += '</table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function showPackageForm(editData = null) {
+  const def = editData || { Type: 'Bundled', Price: 0, IncludesLodging: 1, IncludesService: 1, IncludesActivities: 0 };
+  document.getElementById('pkgFormArea').innerHTML = `
+  <div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
+    <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:14px;">${editData ? 'Edit Package #'+editData.PackageID : 'New Package'}</h3>
+    <div class="form-grid">
+      <label class="field"><span>Type</span><select id="pkgType"><option ${def.Type==='Bundled'?'selected':''}>Bundled</option><option ${def.Type==='Individual'?'selected':''}>Individual</option></select></label>
+      <label class="field"><span>Price</span><input type="number" id="pkgPrice" value="${def.Price}"></label>
+    </div>
+    <div class="check-row">
+      <label><input type="checkbox" id="pkgLodging" ${def.IncludesLodging?'checked':''}> Lodging</label>
+      <label><input type="checkbox" id="pkgService" ${def.IncludesService?'checked':''}> Service</label>
+      <label><input type="checkbox" id="pkgActivities" ${def.IncludesActivities?'checked':''}> Activities</label>
+    </div>
+    <div class="form-grid">
+      <label class="field"><span>Destination IDs (comma)</span><input type="text" id="pkgDests" value="${(def.destination_ids||[]).join(',')}" placeholder="1,2,3"></label>
+      <label class="field"><span>Flight IDs (comma)</span><input type="text" id="pkgFlights" value="${(def.flight_ids||[]).join(',')}" placeholder="1,2"></label>
+      <label class="field"><span>Attraction IDs (comma)</span><input type="text" id="pkgAttrs" value="${(def.attraction_ids||[]).join(',')}" placeholder="1,2"></label>
+      <label class="field"><span>Restaurant IDs (comma)</span><input type="text" id="pkgRests" value="${(def.restaurant_ids||[]).join(',')}" placeholder="1,2"></label>
+    </div>
+    <button class="btn btn-agency" onclick="${editData ? 'updatePackage('+editData.PackageID+')' : 'createPackage()'}" style="margin-top:10px;">${editData ? 'Update' : 'Create'} Package</button>
+    ${editData ? '<button class="btn" onclick="document.getElementById(\'pkgFormArea\').innerHTML=\'\'" style="margin-top:10px;margin-left:8px;">Cancel</button>' : ''}
+  </div>`;
+}
+
+function parseIds(str) {
+  if (!str.trim()) return [];
+  return str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+}
+
+async function createPackage() {
+  const body = {
+    Type: document.getElementById('pkgType').value,
+    Price: parseFloat(document.getElementById('pkgPrice').value),
+    IncludesLodging: document.getElementById('pkgLodging').checked ? 1 : 0,
+    IncludesService: document.getElementById('pkgService').checked ? 1 : 0,
+    IncludesActivities: document.getElementById('pkgActivities').checked ? 1 : 0,
+    destination_ids: parseIds(document.getElementById('pkgDests').value),
+    flight_ids: parseIds(document.getElementById('pkgFlights').value),
+    attraction_ids: parseIds(document.getElementById('pkgAttrs').value),
+    restaurant_ids: parseIds(document.getElementById('pkgRests').value),
+  };
+  const r = await apiCall('packages.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 201) { toast('Package created!', 'success'); loadPackages(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function editPackage(id) {
+  const r = await apiCall('packages.php?id=' + id);
+  if (r.status === 200) showPackageForm(r.data);
+  else toast('Failed to load package', 'error');
+}
+
+async function updatePackage(id) {
+  const body = {
+    Type: document.getElementById('pkgType').value,
+    Price: parseFloat(document.getElementById('pkgPrice').value),
+    IncludesLodging: document.getElementById('pkgLodging').checked ? 1 : 0,
+    IncludesService: document.getElementById('pkgService').checked ? 1 : 0,
+    IncludesActivities: document.getElementById('pkgActivities').checked ? 1 : 0,
+  };
+  const r = await apiCall('packages.php?id=' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 200) { toast('Updated!', 'success'); loadPackages(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function deletePackage(id) {
+  if (!confirm('Delete Package #' + id + '?')) return;
+  const r = await apiCall('packages.php?id=' + id, { method: 'DELETE' });
+  if (r.status === 200) { toast('Deleted!', 'success'); loadPackages(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+// ---- GROUP TRIPS CRUD ----
+async function loadGroupTrips() {
+  const r = await apiCall('grouptrips.php');
+  let html = '<h2>Group Trips</h2>';
+  html += '<button class="btn btn-agency" onclick="showTripForm()" style="margin-bottom:20px;">+ Create New Trip</button>';
+  html += '<div id="tripFormArea"></div>';
+  html += '<div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>Max</th><th>Enrolled</th><th>Start</th><th>End</th><th>Itinerary</th><th>Actions</th></tr>';
+  if (Array.isArray(r.data)) {
+    r.data.forEach(t => {
+      html += `<tr>
+        <td>${t.GroupTripID}</td><td>${t.MaxSize}</td><td>${t.CurrentEnrolment}</td>
+        <td>${t.StartDate}</td><td>${t.EndDate}</td>
+        <td>${(t.Itinerary||'').substring(0,50)}</td>
+        <td>
+          <button class="btn" style="padding:6px 10px;font-size:10px;" onclick="editTrip(${t.GroupTripID})">Edit</button>
+          <button class="btn btn-primary" style="padding:6px 10px;font-size:10px;" onclick="deleteTrip(${t.GroupTripID})">Delete</button>
+        </td>
+      </tr>`;
+    });
+  }
+  html += '</table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function showTripForm(editData = null) {
+  const def = editData || { MaxSize: 10, Itinerary: '', StartDate: '', EndDate: '' };
+  document.getElementById('tripFormArea').innerHTML = `
+  <div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
+    <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:14px;">${editData ? 'Edit Trip #'+editData.GroupTripID : 'New Group Trip'}</h3>
+    <div class="form-grid">
+      <label class="field"><span>Max Size</span><input type="number" id="tripMax" value="${def.MaxSize}"></label>
+      <label class="field"><span>Start Date</span><input type="date" id="tripStart" value="${def.StartDate}"></label>
+      <label class="field"><span>End Date</span><input type="date" id="tripEnd" value="${def.EndDate}"></label>
+    </div>
+    <label class="field"><span>Itinerary</span><textarea id="tripItinerary" rows="3">${def.Itinerary}</textarea></label>
+    <button class="btn btn-agency" onclick="${editData ? 'updateTrip('+editData.GroupTripID+')' : 'createTrip()'}" style="margin-top:10px;">${editData ? 'Update' : 'Create'} Trip</button>
+    ${editData ? '<button class="btn" onclick="document.getElementById(\'tripFormArea\').innerHTML=\'\'" style="margin-top:10px;margin-left:8px;">Cancel</button>' : ''}
+  </div>`;
+}
+
+async function createTrip() {
+  const body = {
+    MaxSize: parseInt(document.getElementById('tripMax').value),
+    Itinerary: document.getElementById('tripItinerary').value,
+    StartDate: document.getElementById('tripStart').value,
+    EndDate: document.getElementById('tripEnd').value,
+  };
+  const r = await apiCall('grouptrips.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 201) { toast('Trip created!', 'success'); loadGroupTrips(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function editTrip(id) {
+  const r = await apiCall('grouptrips.php?id=' + id);
+  if (r.status === 200) showTripForm(r.data);
+}
+
+async function updateTrip(id) {
+  const body = {
+    MaxSize: parseInt(document.getElementById('tripMax').value),
+    Itinerary: document.getElementById('tripItinerary').value,
+    StartDate: document.getElementById('tripStart').value,
+    EndDate: document.getElementById('tripEnd').value,
+  };
+  const r = await apiCall('grouptrips.php?id=' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 200) { toast('Updated!', 'success'); loadGroupTrips(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function deleteTrip(id) {
+  if (!confirm('Delete Trip #' + id + '?')) return;
+  const r = await apiCall('grouptrips.php?id=' + id, { method: 'DELETE' });
+  if (r.status === 200) { toast('Deleted!', 'success'); loadGroupTrips(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+// ---- BROWSE ----
+async function loadFlights() {
+  const r = await apiCall('flights.php');
+  let html = '<h2>Flights</h2><div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Fare</th><th>Airline</th></tr>';
+  if (Array.isArray(r.data)) r.data.forEach(f => {
+    html += `<tr><td>${f.FlightID}</td><td>${f.Origin}</td><td>${f.Destination}</td><td>${f.DepartureTime}</td><td>${f.ArrivalTime}</td><td>R${Number(f.Fare).toLocaleString()}</td><td>${f.AirlineName||'---'}</td></tr>`;
+  });
+  html += '</table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function loadBrowse(endpoint, title, mapper) {
+  const r = await apiCall(endpoint);
+  let html = '<h2>' + title + '</h2><div class="cards">';
+  if (Array.isArray(r.data)) r.data.forEach(d => {
+    const m = mapper(d);
+    html += `<div class="card"><div class="body"><h3>${m.title||'---'}</h3><p style="font-size:12px;color:var(--muted);">${m.sub||''}</p><p style="font-size:12px;margin-top:4px;">${m.extra||''}</p></div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function logout() {
+  await apiCall('logout.php');
+  window.location.href = 'login-agency.html';
+}
+
+init();
+</script>
+</body>
+</html>

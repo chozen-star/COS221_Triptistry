@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agency Portal — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <aside class="login-side agency">
+      <a href="index.html" class="logo" style="color:white;">Trip<span style="color:var(--ink);">istry</span></a>
+      <div>
+        <span class="badge">Agency Portal</span>
+        <h1 style="margin-top:18px;">List trips.<br/><span class="ghost">Grow bookings.</span></h1>
+        <div style="margin-top:28px; display:grid; grid-template-columns:1fr 1fr; gap:14px; max-width:360px;">
+          <div style="background:rgba(255,255,255,0.12); padding:16px; border:1px solid rgba(255,255,255,0.25);">
+            <div style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:900;">128</div>
+            <div class="eyebrow" style="color:rgba(255,255,255,0.8);">Bookings</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.12); padding:16px; border:1px solid rgba(255,255,255,0.25);">
+            <div style="font-family:'Outfit',sans-serif; font-size:28px; font-weight:900;">4.8★</div>
+            <div class="eyebrow" style="color:rgba(255,255,255,0.8);">Avg Rating</div>
+          </div>
+        </div>
+      </div>
+      <span class="eyebrow" style="color:rgba(255,255,255,0.7);">© 2026 Tripistry</span>
+    </aside>
+
+    <main class="login-form">
+      <a href="index.html" class="back">← Back to home</a>
+      <h2>Agency sign in.</h2>
+      <p class="sub">Manage packages, bookings, and reviews.</p>
+
+      <form id="loginForm">
+        <label class="field">
+          <span>Agency Name</span>
+          <input type="text" name="Name" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" required />
+        </label>
+        <button type="submit" class="btn btn-agency">Enter Dashboard</button>
+      </form>
+
+      <p class="alt">Want to list packages? <a href="register-agency.html">Apply as an agency</a></p>
+      <p class="alt" style="margin-top:6px;">Are you a traveller? <a href="login-traveller.html">Traveller login →</a></p>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      try {
+        const res = await fetch('api/login_agency.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = 'dashboard-agency.html';
+        } else {
+          alert(data.error || 'Login failed');
+        }
+      } catch (err) {
+        alert('Network error. Is XAMPP running?');
+      }
+    });
+  </script>
+</body>
+</html>
