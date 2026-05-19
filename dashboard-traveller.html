@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traveller Dashboard — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="dash-wrap">
+  <aside class="dash-side">
+    <a href="index.html" class="logo">Trip<span style="color:var(--primary);">istry</span></a>
+    <div class="user-info">TRAVELLER</div>
+    <div class="user-name" id="sideName">---</div>
+    <ul class="dash-nav">
+      <li><a href="#" class="active" data-tab="packages">Packages</a></li>
+      <li><a href="#" data-tab="bookings">My Bookings</a></li>
+      <li><a href="#" data-tab="reviews">Reviews</a></li>
+      <li><a href="#" data-tab="grouptrips">Group Trips</a></li>
+      <li><a href="#" data-tab="destinations">Destinations</a></li>
+      <li><a href="#" data-tab="flights">Flights</a></li>
+      <li><a href="#" data-tab="accommodations">Accommodations</a></li>
+      <li><a href="#" data-tab="attractions">Attractions</a></li>
+      <li><a href="#" data-tab="restaurants">Restaurants</a></li>
+      <a href="#" class="logout-link" onclick="logout()">Logout</a>
+    </ul>
+  </aside>
+
+  <main class="dash-main" id="mainContent"></main>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+const API = 'api/';
+let currentUser = null;
+
+async function apiCall(url, options = {}) {
+  const res = await fetch(API + url, { credentials: 'same-origin', ...options });
+  if (res.status === 401) { window.location.href = 'login-traveller.html'; return null; }
+  return { status: res.status, data: await res.json() };
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function stars(n) {
+  let s = ''; for (let i = 1; i <= 5; i++) s += i <= n ? '★' : '☆'; return s;
+}
+
+async function init() {
+  const r = await apiCall('session.php');
+  if (!r || r.status !== 200) return;
+  currentUser = r.data;
+  document.getElementById('sideName').textContent = r.data.name || '---';
+  loadTab('packages');
+}
+
+document.querySelectorAll('.dash-nav a[data-tab]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelectorAll('.dash-nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    loadTab(a.dataset.tab);
+  });
+});
+
+async function loadTab(tab) {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '<div class="loading">Loading...</div>';
+  try {
+    switch (tab) {
+      case 'packages': await loadPackages(); break;
+      case 'bookings': await loadBookings(); break;
+      case 'reviews': await loadReviews(); break;
+      case 'grouptrips': await loadGroupTrips(); break;
+      case 'destinations': await loadDestinations(); break;
+      case 'flights': await loadFlights(); break;
+      case 'accommodations': await loadAccommodations(); break;
+      case 'attractions': await loadAttractions(); break;
+      case 'restaurants': await loadRestaurants(); break;
+    }
+  } catch (e) { main.innerHTML = '<div class="empty"><strong>Error</strong><p>' + e.message + '</p></div>'; }
+}
+
+// ---- PACKAGES ----
+async function loadPackages() {
+  const r = await apiCall('packages.php');
+  const pkgs = r.data;
+  let html = '<h2>Browse Packages</h2><div class="inline-form">';
+  html += '<div class="field"><span>Sort</span><select id="pkgSort" onchange="loadPackages()"><option value="">Default</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="rating">By Rating</option></select></div>';
+  html += '<div class="field"><span>Min Price</span><input type="number" id="pkgMin" placeholder="e.g. 5000" onchange="loadPackages()"></div>';
+  html += '<div class="field"><span>Max Price</span><input type="number" id="pkgMax" placeholder="e.g. 30000" onchange="loadPackages()"></div>';
+  html += '</div><div class="cards">';
+  if (Array.isArray(pkgs)) {
+    if (pkgs.length === 0) html += '<div class="empty"><strong>No packages found</strong></div>';
+    pkgs.forEach(p => {
+      html += `<div class="card clickable" onclick="bookPackage(${p.PackageID}, '${p.Type || ''}', ${p.Price || 0})">
+        <div class="body">
+          <div class="meta"><span>${p.Type || 'Package'}</span><span class="stars">${stars(Math.round(p.AgencyRating || 0))}</span></div>
+          <h3>Package #${p.PackageID}</h3>
+          <p style="font-size:12px;color:var(--muted);margin-top:4px;">Agency: ${p.AgencyName || '---'}</p>
+          <div class="price"><span class="eyebrow">Price</span><strong>R${Number(p.Price).toLocaleString()}</strong></div>
+          <button class="btn btn-primary" style="margin-top:8px;width:100%;font-size:10px;">Book Now</button>
+        </div>
+      </div>`;
+    });
+  }
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+  document.getElementById('pkgSort').value = new URLSearchParams(location.search).get('sort') || '';
+}
+
+async function bookPackage(id, type, price) {
+  if (!confirm('Book Package #' + id + ' (' + type + ') for R' + price.toLocaleString() + '?')) return;
+  const r = await apiCall('bookings.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ PackageID: id }) });
+  if (r.status === 201) toast('Booked successfully!', 'success');
+  else if (r.status === 409) toast('Already booked!', 'error');
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+// ---- BOOKINGS ----
+async function loadBookings() {
+  const r = await apiCall('bookings.php');
+  let html = '<h2>My Bookings</h2>';
+  if (Array.isArray(r.data) && r.data.length > 0) {
+    html += '<div class="cards">';
+    r.data.forEach(b => {
+      html += `<div class="card"><div class="body">
+        <span class="badge badge-success">Booked</span>
+        <h3 style="margin-top:8px;">Package #${b.PackageID}</h3>
+        <p style="font-size:12px;color:var(--muted);">Agency: ${b.AgencyName || '---'}</p>
+        <div class="price" style="margin-top:8px;"><strong>R${Number(b.Price || 0).toLocaleString()}</strong></div>
+      </div></div>`;
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="empty"><strong>No bookings yet</strong><p>Browse packages and book your first trip!</p></div>';
+  }
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+// ---- REVIEWS ----
+function showReviewForm() {
+  const el = document.getElementById('reviewFormArea');
+  el.innerHTML = `
+  <div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
+    <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:14px;">Write a Review</h3>
+    <div class="form-grid">
+      <label class="field form-full"><span>Rating (1-5)</span><input type="number" id="rvRating" min="1" max="5" value="5"></label>
+      <label class="field form-full"><span>Feedback</span><textarea id="rvFeedback" rows="3"></textarea></label>
+      <label class="field"><span>Target Type</span><select id="rvTargetType"><option value="destination">Destination</option><option value="restaurant">Restaurant</option><option value="accommodation">Accommodation</option></select></label>
+      <label class="field"><span>Target ID</span><input type="number" id="rvTargetId" value="1"></label>
+    </div>
+    <button class="btn btn-primary" onclick="submitReview()" style="margin-top:10px;">Submit Review</button>
+  </div>`;
+}
+
+async function submitReview() {
+  const body = {
+    StarRating: parseInt(document.getElementById('rvRating').value),
+    Feedback: document.getElementById('rvFeedback').value,
+  };
+  const type = document.getElementById('rvTargetType').value;
+  body[type.charAt(0).toUpperCase() + type.slice(1) + 'ID'] = parseInt(document.getElementById('rvTargetId').value);
+  const r = await apiCall('reviews.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 201) { toast('Review submitted!', 'success'); loadReviews(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function loadReviews() {
+  let html = '<h2>Reviews</h2><div id="reviewFormArea"></div>';
+  html += '<div class="inline-form"><div class="field"><span>View reviews for</span><select id="rvViewType" onchange="loadReviews()"><option value="destination">Destination</option><option value="restaurant">Restaurant</option><option value="accommodation">Accommodation</option></select></div><div class="field"><span>ID</span><input type="number" id="rvViewId" value="1" onchange="loadReviews()"></div></div>';
+  html += '<div id="reviewList"></div>';
+  document.getElementById('mainContent').innerHTML = html;
+  showReviewForm();
+  const type = document.getElementById('rvViewType').value;
+  const id = document.getElementById('rvViewId').value;
+  const r = await apiCall('reviews.php?' + type + '_id=' + id);
+  let rhtml = '';
+  if (Array.isArray(r.data) && r.data.length > 0) {
+    r.data.forEach(rv => {
+      rhtml += `<div style="background:white;border:2px solid var(--ink);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);">
+        <div class="stars">${stars(rv.StarRating)}</div>
+        <p style="margin-top:6px;">${rv.Feedback}</p>
+        <div class="meta" style="margin-top:6px;"><span>By: ${rv.TravellerName || 'Anonymous'}</span><span>${rv.DateSubmitted || ''}</span></div>
+      </div>`;
+    });
+  } else { rhtml = '<div class="empty"><strong>No reviews found</strong></div>'; }
+  document.getElementById('reviewList').innerHTML = rhtml;
+}
+
+// ---- GROUP TRIPS ----
+async function loadGroupTrips() {
+  const r = await apiCall('grouptrips.php');
+  let html = '<h2>Group Trips</h2><div class="cards">';
+  if (Array.isArray(r.data)) {
+    r.data.forEach(t => {
+      const full = t.CurrentEnrolment >= t.MaxSize;
+      html += `<div class="card"><div class="body">
+        <span class="badge ${full ? 'badge-warn' : 'badge-success'}">${full ? 'FULL' : 'Open'}</span>
+        <h3 style="margin-top:8px;">Trip #${t.GroupTripID}</h3>
+        <p style="font-size:12px;color:var(--muted);">Agency: ${t.AgencyName || '---'}</p>
+        <p style="font-size:12px;">Enrolled: ${t.CurrentEnrolment}/${t.MaxSize}</p>
+        <p style="font-size:11px;color:var(--muted);">${t.Itinerary ? t.Itinerary.substring(0,80) : ''}...</p>
+        <p style="font-size:11px;">${t.StartDate || ''} → ${t.EndDate || ''}</p>
+        ${!full ? `<button class="btn btn-primary" style="margin-top:8px;width:100%;font-size:10px;" onclick="enrolTrip(${t.GroupTripID})">Enrol Now</button>` : ''}
+      </div></div>`;
+    });
+  }
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function enrolTrip(id) {
+  const r = await apiCall('grouptrips.php?action=enrol', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ GroupTripID: id }) });
+  if (r.status === 200) { toast('Enrolled!', 'success'); loadGroupTrips(); }
+  else if (r.status === 400) toast(r.data.error, 'error');
+  else if (r.status === 409) toast('Already enrolled', 'error');
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+// ---- BROWSE TABS ----
+async function loadDestinations() {
+  const r = await apiCall('destinations.php');
+  let html = '<h2>Destinations</h2><div class="cards">';
+  if (Array.isArray(r.data)) r.data.forEach(d => {
+    html += `<div class="card"><div class="body">
+      <h3>${d.Name || '---'}</h3>
+      <div class="meta"><span>${d.Country || ''}, ${d.Region || ''}</span><span>${d.RestaurantCount || 0} restaurants</span></div>
+      <p style="font-size:12px;color:var(--muted);margin-top:6px;">${(d.Description || '').substring(0,120)}</p>
+    </div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function loadFlights() {
+  const r = await apiCall('flights.php');
+  let html = '<h2>Flights</h2><div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Fare</th><th>Airline</th></tr>';
+  if (Array.isArray(r.data)) r.data.forEach(f => {
+    html += `<tr><td>${f.FlightID}</td><td>${f.Origin}</td><td>${f.Destination}</td><td>${f.DepartureTime}</td><td>${f.ArrivalTime}</td><td>R${Number(f.Fare).toLocaleString()}</td><td>${f.AirlineName || '---'}</td></tr>`;
+  });
+  html += '</table></div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function loadAccommodations() {
+  const r = await apiCall('accommodations.php');
+  let html = '<h2>Accommodations</h2><div class="cards">';
+  if (Array.isArray(r.data)) r.data.forEach(a => {
+    html += `<div class="card"><div class="body">
+      <span class="badge badge-agency">${a.AccommodationType || '---'}</span>
+      <h3 style="margin-top:8px;">${a.Location || 'Accommodation #'+a.AccommodationID}</h3>
+      <div class="price"><strong>R${Number(a.Price || 0).toLocaleString()}</strong></div>
+    </div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function loadAttractions() {
+  const r = await apiCall('attractions.php');
+  let html = '<h2>Tourist Attractions</h2><div class="cards">';
+  if (Array.isArray(r.data)) r.data.forEach(a => {
+    html += `<div class="card"><div class="body">
+      <span class="badge badge-primary">${a.Type || 'Attraction'}</span>
+      <h3 style="margin-top:8px;">${a.Name || '---'}</h3>
+      <p style="font-size:12px;color:var(--muted);">${a.Location || ''}</p>
+      <div class="price"><strong>R${Number(a.Price || 0).toLocaleString()}</strong></div>
+    </div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function loadRestaurants() {
+  const r = await apiCall('restaurants.php');
+  let html = '<h2>Restaurants</h2><div class="cards">';
+  if (Array.isArray(r.data)) r.data.forEach(r2 => {
+    html += `<div class="card"><div class="body">
+      <h3>${r2.Name || '---'}</h3>
+      <p style="font-size:11px;color:var(--muted);">Price: ${r2.PriceRange || '---'}</p>
+      <p style="font-size:11px;">Cuisine: ${r2.CuisineTypes || '---'}</p>
+      <p style="font-size:11px;">Locations: ${r2.Locations || '---'}</p>
+    </div></div>`;
+  });
+  html += '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+async function logout() {
+  await apiCall('logout.php');
+  window.location.href = 'login-traveller.html';
+}
+
+init();
+</script>
+</body>
+</html>
