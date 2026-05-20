@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Traveller Login — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <aside class="login-side traveller">
+      <a href="index.html" class="logo" style="color:white;">Trip<span style="color:var(--ink);">istry</span></a>
+      <div>
+        <span class="badge">Traveller Portal</span>
+        <h1 style="margin-top:18px;">Pack light.<br/><span class="ghost">Live loud.</span></h1>
+        <p style="margin-top:18px; max-width:360px; opacity:0.92;">Your bookings, group trips, and reviews — all in one place.</p>
+      </div>
+      <span class="eyebrow" style="color:rgba(255,255,255,0.7);">© 2026 Tripistry</span>
+    </aside>
+
+    <main class="login-form">
+      <a href="index.html" class="back">← Back to home</a>
+      <h2>Welcome back, traveller.</h2>
+      <p class="sub">Log in to continue your adventure.</p>
+
+      <form id="loginForm">
+        <label class="field">
+          <span>Email</span>
+          <input type="email" name="Email" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input type="password" name="password" required />
+        </label>
+        <button type="submit" class="btn btn-primary">Log In</button>
+      </form>
+
+      <p class="alt">New here? <a href="register-traveller.html">Create traveller account</a></p>
+      <p class="alt" style="margin-top:6px;">Are you an agency? <a href="login-agency.html">Agency portal →</a></p>
+    </main>
+  </div>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const formData = new FormData(this);
+      try {
+        const res = await fetch('api/login_traveller.php', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok) {
+          window.location.href = 'dashboard-traveller.html';
+        } else {
+          alert(data.error || 'Login failed');
+        }
+      } catch (err) {
+        alert('Network error. Is XAMPP running?');
+      }
+    });
+  </script>
+</body>
+</html>
