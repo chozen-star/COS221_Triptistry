@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tripistry — Travel packages, curated by humans.</title>
+  <meta name="description" content="Tripistry is a travel package marketplace connecting curious travellers with trusted agencies." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">Trip<span>istry</span></a>
+      <div class="nav-links">
+        <a href="#packages">Packages</a>
+        <a href="#agency">For Agencies</a>
+      </div>
+      <div class="nav-cta">
+        <a href="login-traveller.html" class="btn btn-ghost">Traveller Login</a>
+        <a href="login-agency.html" class="btn btn-primary">Agency Portal</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="eyebrow">Curated travel · Real agencies</span>
+        <h1 class="display" style="margin-top:14px;">
+          Go further.<br/>
+          <span class="accent">Wander wilder.</span>
+        </h1>
+        <p>Hand-picked travel packages from trusted agencies. Compare, book, and bring friends — all in one place.</p>
+        <div class="hero-actions">
+          <a href="#packages" class="btn btn-primary">Browse Packages</a>
+          <a href="register-agency.html" class="btn">List Your Trips</a>
+        </div>
+
+        <!-- Search -->
+        <div class="search">
+          <input type="text" id="searchInput" placeholder="Where to? (e.g. France, Paris)" />
+          <select id="searchBudget">
+            <option value="">Any budget</option>
+            <option value="10000">Under R10 000</option>
+            <option value="10000-25000">R10 000 - R25 000</option>
+            <option value="25000">R25 000+</option>
+          </select>
+          <button onclick="handleSearch()">Search</button>
+        </div>
+      </div>
+
+      <div class="hero-img">
+        <img src="https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80" alt="Two travellers overlooking a mountain lake at sunset" />
+        <span class="hero-img-cap">Find your<br/>next chapter.</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Packages -->
+  <section id="packages">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Trending now</span>
+          <h2 class="display" style="margin-top:8px;">Trips travellers love.</h2>
+        </div>
+        <a href="login-traveller.html" class="btn">View all</a>
+      </div>
+      <div class="cards" id="featuredPackages">
+        <div class="empty"><strong>Loading packages...</strong><p>Connecting to Tripistry API</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Split portal -->
+  <section id="agency">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Two doors. One platform.</span>
+          <h2 class="display" style="margin-top:8px;">Pick your portal.</h2>
+        </div>
+      </div>
+
+      <div class="split">
+        <div class="traveller">
+          <span class="eyebrow" style="color:rgba(255,255,255,0.85);">For travellers</span>
+          <h3 style="margin-top:10px;">Find trips.<br/>Book the<br/>good ones.</h3>
+          <p>Browse curated packages, compare agencies, leave reviews, and roll deep with group bookings.</p>
+          <a href="login-traveller.html" class="btn">Traveller Login →</a>
+        </div>
+        <div class="agency">
+          <span class="eyebrow" style="color:rgba(255,255,255,0.85);">For agencies</span>
+          <h3 style="margin-top:10px;">List trips.<br/>Reach more<br/>travellers.</h3>
+          <p>Publish your packages, manage bookings, and get verified reviews — all from one dashboard.</p>
+          <a href="login-agency.html" class="btn">Agency Portal →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="foot-grid">
+        <div>
+          <span class="logo">Trip<span style="color:var(--primary);">istry</span></span>
+          <p style="margin-top:14px; max-width:380px; font-size:14px;">
+            The travel package marketplace where curators and explorers meet.
+          </p>
+        </div>
+        <div>
+          <h4>Travellers</h4>
+          <ul>
+            <li><a href="#packages">Browse Packages</a></li>
+            <li><a href="register-traveller.html">Create Account</a></li>
+            <li><a href="login-traveller.html">Traveller Login</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Agencies</h4>
+          <ul>
+            <li><a href="register-agency.html">Register Agency</a></li>
+            <li><a href="login-agency.html">Agency Login</a></li>
+            <li><a href="#agency">How It Works</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bot">
+        <span>© 2026 Tripistry · COS 221</span>
+        <span>Privacy · Terms</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const heroImages = [
+      'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1473221326025-9183b464bb7e?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=800&q=80'
+    ];
+
+    async function loadFeaturedPackages() {
+      try {
+        const res = await fetch('api/packages.php?sort=rating');
+        const data = await res.json();
+        const container = document.getElementById('featuredPackages');
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = '<div class="empty"><strong>No packages yet</strong><p>Agencies will add packages soon.</p></div>';
+          return;
+        }
+        container.innerHTML = data.slice(0, 8).map((p, i) => `
+          <article class="card">
+            <div class="thumb">
+              <img src="${heroImages[i % heroImages.length]}" alt="Package #${p.PackageID}" loading="lazy" />
+              <span class="tag">R${Number(p.Price).toLocaleString()}</span>
+            </div>
+            <div class="body">
+              <div class="meta"><span>${p.Type || 'Package'}</span><span>★ ${Number(p.AgencyRating || 0).toFixed(1)}</span></div>
+              <h3>Package #${p.PackageID}</h3>
+              <p style="font-size:11px;color:var(--muted);">by ${p.AgencyName || '---'}</p>
+              <div class="price"><span class="eyebrow">from</span><strong>R${Number(p.Price).toLocaleString()}</strong></div>
+            </div>
+          </article>
+        `).join('');
+      } catch (e) {
+        document.getElementById('featuredPackages').innerHTML = '<div class="empty"><strong>Unable to load packages</strong><p>Start XAMPP and import the database first.</p></div>';
+      }
+    }
+
+    function handleSearch() {
+      window.location.href = 'login-traveller.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', loadFeaturedPackages);
+  </script>
+</body>
+</html>
