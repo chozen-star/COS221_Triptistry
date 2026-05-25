@@ -18,6 +18,7 @@
       <a href="index.html" class="logo">Trip<span>istry</span></a>
       <div class="nav-links">
         <a href="#packages">Packages</a>
+        <a href="#destinations">Destinations</a>
         <a href="#agency">For Agencies</a>
       </div>
       <div class="nav-cta">
@@ -31,7 +32,7 @@
   <header class="hero">
     <div class="container hero-grid">
       <div>
-        <span class="eyebrow">Curated travel · Real agencies</span>
+        <span class="eyebrow"><span class="pulse"></span> Curated travel · Real agencies</span>
         <h1 class="display" style="margin-top:14px;">
           Go further.<br/>
           <span class="accent">Wander wilder.</span>
@@ -41,7 +42,11 @@
           <a href="#packages" class="btn btn-primary">Browse Packages</a>
           <a href="register-agency.html" class="btn">List Your Trips</a>
         </div>
-
+        <div class="trust-badges">
+          <div class="trust-badge"><div class="tb-icon green">&#10003;</div>Verified Agencies</div>
+          <div class="trust-badge"><div class="tb-icon orange">&#9733;</div>Real Reviews</div>
+          <div class="trust-badge"><div class="tb-icon teal">&#9825;</div>Group Trips</div>
+        </div>
         <!-- Search -->
         <div class="search">
           <input type="text" id="searchInput" placeholder="Where to? (e.g. France, Paris)" />
@@ -62,8 +67,37 @@
     </div>
   </header>
 
+  <!-- Stats -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-num" id="statAgencies">4</div><div class="stat-label">Travel Agencies</div></div>
+        <div class="stat-item"><div class="stat-num" id="statPackages">8</div><div class="stat-label">Curated Packages</div></div>
+        <div class="stat-item"><div class="stat-num" id="statDestinations">7</div><div class="stat-label">Destinations</div></div>
+        <div class="stat-item"><div class="stat-num" id="statReviews">8</div><div class="stat-label">Traveller Reviews</div></div>
+        <div class="stat-item"><div class="stat-num" id="statTrips">4</div><div class="stat-label">Group Trips</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Destination Showcase -->
+  <section id="destinations">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Explore</span>
+          <h2 class="display" style="margin-top:8px;">Popular destinations.</h2>
+        </div>
+        <a href="register-traveller.html" class="btn">View All</a>
+      </div>
+      <div class="cards" id="destShowcase">
+        <div class="empty"><strong>Loading...</strong></div>
+      </div>
+    </div>
+  </section>
+
   <!-- Packages -->
-  <section id="packages">
+  <section id="packages" class="section-alt">
     <div class="container">
       <div class="section-head">
         <div>
@@ -105,6 +139,15 @@
     </div>
   </section>
 
+  <!-- CTA -->
+  <div class="cta-strip">
+    <div class="container">
+      <h2>Ready to explore?</h2>
+      <p>Join thousands of travellers discovering Africa's best packages. Create your free account in seconds.</p>
+      <a href="register-traveller.html" class="btn">Start Your Journey</a>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer>
     <div class="container">
@@ -114,6 +157,9 @@
           <p style="margin-top:14px; max-width:380px; font-size:14px;">
             The travel package marketplace where curators and explorers meet.
           </p>
+          <div class="trust-badges" style="margin-top:20px;">
+            <div class="trust-badge" style="color:#cfd8d9;"><div class="tb-icon green">&#10003;</div>Secure Booking</div>
+          </div>
         </div>
         <div>
           <h4>Travellers</h4>
@@ -140,12 +186,53 @@
   </footer>
 
   <script>
+    const DEST_IMG = [
+      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1473221326025-9183b464bb7e?w=600&h=400&fit=crop',
+      'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&h=400&fit=crop',
+    ];
+
     const heroImages = [
       'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=1200&q=80',
       'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1473221326025-9183b464bb7e?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1542051841857-5f90071e7989?auto=format&fit=crop&w=800&q=80'
     ];
+
+    function escHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function loadDestinations() {
+      try {
+        const res = await fetch('api/destinations.php');
+        const data = await res.json();
+        const container = document.getElementById('destShowcase');
+        if (!Array.isArray(data) || data.length === 0) {
+          container.innerHTML = '<div class="empty"><strong>Destinations coming soon</strong></div>';
+          return;
+        }
+        container.innerHTML = data.slice(0, 6).map((d, i) => `
+          <div class="card card-rich">
+            <div class="cr-thumb"><img src="${DEST_IMG[i % DEST_IMG.length]}" alt="${escHtml(d.Name)}" loading="lazy" /><span class="img-tag">${escHtml(d.Country || '')}</span><span class="img-title">${escHtml(d.Name || '---')}</span></div>
+            <div class="cr-body">
+              <p style="font-size:12px;color:var(--muted);">${escHtml((d.Description || '').substring(0, 100))}</p>
+              <div class="cr-footer"><span style="font-size:11px;">${d.RestaurantCount || 0} restaurants</span><span style="font-size:11px;">${escHtml(d.Region || '')}</span></div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        document.getElementById('destShowcase').innerHTML = '<div class="empty"><strong>Unable to load</strong><p>Make sure XAMPP is running.</p></div>';
+      }
+    }
 
     async function loadFeaturedPackages() {
       try {
@@ -157,16 +244,25 @@
           return;
         }
         container.innerHTML = data.slice(0, 8).map((p, i) => `
-          <article class="card">
-            <div class="thumb">
-              <img src="${heroImages[i % heroImages.length]}" alt="Package #${p.PackageID}" loading="lazy" />
-              <span class="tag">R${Number(p.Price).toLocaleString()}</span>
+          <article class="card card-rich">
+            <div class="cr-thumb">
+              <img src="${heroImages[i % heroImages.length]}" alt="${escHtml(p.Name || 'Package #'+p.PackageID)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop'" />
+              <span class="img-tag">R${Number(p.Price).toLocaleString()}</span>
             </div>
-            <div class="body">
-              <div class="meta"><span>${p.Type || 'Package'}</span><span>★ ${Number(p.AgencyRating || 0).toFixed(1)}</span></div>
-              <h3>Package #${p.PackageID}</h3>
-              <p style="font-size:11px;color:var(--muted);">by ${p.AgencyName || '---'}</p>
-              <div class="price"><span class="eyebrow">from</span><strong>R${Number(p.Price).toLocaleString()}</strong></div>
+            <div class="cr-body">
+              <div class="cr-meta"><span>${escHtml(p.Type || 'Package')}</span><span style="color:#e6a500;">&#9733; ${Number(p.AgencyRating || 0).toFixed(1)}</span></div>
+              <h3>${escHtml(p.Name || 'Package #'+p.PackageID)}</h3>
+              <p style="font-size:11px;color:var(--muted);">by ${escHtml(p.AgencyName || '---')}</p>
+              <div class="cr-footer">
+                <div>
+                  <span class="eyebrow" style="font-size:9px;">from</span>
+                  <div style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;">R${Number(p.Price).toLocaleString()}</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <a href="package-details.html?id=${p.PackageID}" class="btn" style="padding:10px 14px;font-size:10px;">View</a>
+                  <a href="login-traveller.html" class="btn btn-primary" style="padding:10px 16px;font-size:10px;">Book</a>
+                </div>
+              </div>
             </div>
           </article>
         `).join('');
@@ -175,11 +271,41 @@
       }
     }
 
-    function handleSearch() {
-      window.location.href = 'login-traveller.html';
+    async function loadStats() {
+      try {
+        const [pkgRes, destRes, tripRes] = await Promise.all([
+          fetch('api/packages.php'),
+          fetch('api/destinations.php'),
+          fetch('api/grouptrips.php'),
+        ]);
+        const packages = await pkgRes.json();
+        const destinations = await destRes.json();
+        const trips = await tripRes.json();
+        document.getElementById('statPackages').textContent = Array.isArray(packages) ? packages.length : '0';
+        document.getElementById('statDestinations').textContent = Array.isArray(destinations) ? destinations.length : '0';
+        document.getElementById('statTrips').textContent = Array.isArray(trips) ? trips.length : '0';
+        const uniqueAgencies = Array.isArray(packages) ? new Set(packages.map(function(p) { return p.AgencyName; })).size : 0;
+        document.getElementById('statAgencies').textContent = uniqueAgencies || '4';
+        document.getElementById('statReviews').textContent = '8';
+      } catch(e) {
+        console.error('Stats load failed:', e);
+      }
     }
 
-    document.addEventListener('DOMContentLoaded', loadFeaturedPackages);
+    function handleSearch() {
+      const query = document.getElementById('searchInput').value.trim();
+      const budget = document.getElementById('searchBudget').value;
+      const params = new URLSearchParams();
+      if (query) params.set('search', query);
+      if (budget) params.set('budget', budget);
+      window.location.href = 'login-traveller.html' + (params.toString() ? '?from=search' : '');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadFeaturedPackages();
+      loadDestinations();
+      loadStats();
+    });
   </script>
 </body>
 </html>
