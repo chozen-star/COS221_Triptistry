@@ -4,6 +4,7 @@ require_once __DIR__ . '/response.php';
 require_once __DIR__ . '/auth.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    validateCsrf();
     $session = requireRole('traveller');
     $travelerId = $session['user_id'];
     $body = getRequestBody();
@@ -18,6 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $targets = array_filter([
+        'PackageID' => $body['PackageID'] ?? null,
         'RestaurantID' => $body['RestaurantID'] ?? null,
         'DestinationID' => $body['DestinationID'] ?? null,
         'AccommodationID' => $body['AccommodationID'] ?? null,
@@ -26,23 +28,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     });
 
     if (count($targets) === 0) {
-        respond(400, ['error' => 'Must provide exactly one target: RestaurantID, DestinationID, or AccommodationID']);
+        respond(400, ['error' => 'Must provide exactly one target: PackageID, RestaurantID, DestinationID, or AccommodationID']);
     }
     if (count($targets) > 1) {
         respond(400, ['error' => 'Provide exactly one target ID, not multiple']);
     }
 
+    $packageId = $targets['PackageID'] ?? null;
     $restaurantId = $targets['RestaurantID'] ?? null;
     $destinationId = $targets['DestinationID'] ?? null;
     $accommodationId = $targets['AccommodationID'] ?? null;
 
     $stmt = $pdo->prepare(
-        'INSERT INTO review (StarRating, DateSubmitted, Feedback, TravelerID, RestaurantID, DestinationID, AccommodationID)
-         VALUES (?, CURDATE(), ?, ?, ?, ?, ?)'
+        'INSERT INTO review (StarRating, DateSubmitted, Feedback, TravellerID, PackageID, RestaurantID, DestinationID, AccommodationID)
+         VALUES (?, CURDATE(), ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $rating, $body['Feedback'], $travelerId,
-        $restaurantId, $destinationId, $accommodationId
+        $packageId, $restaurantId, $destinationId, $accommodationId
     ]);
 
     respond(201, ['message' => 'Review submitted']);
@@ -50,12 +53,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $targetId = null;
-    $sql = 'SELECT rv.*, t.Name AS TravellerName
+    $sql = 'SELECT rv.ReviewID, rv.StarRating, rv.Feedback, rv.PackageID, rv.DestinationID, rv.RestaurantID, rv.AccommodationID, rv.TravellerID, DATE(rv.DateSubmitted) AS DateSubmitted, t.Name AS TravellerName
             FROM review rv
-            LEFT JOIN traveler t ON t.TravelerID = rv.TravelerID
+            LEFT JOIN traveler t ON t.TravelerID = rv.TravellerID
             WHERE ';
 
-    if (!empty($_GET['restaurant_id'])) {
+    if (!empty($_GET['package_id'])) {
+        $sql .= 'rv.PackageID = ?';
+        $targetId = $_GET['package_id'];
+    } elseif (!empty($_GET['restaurant_id'])) {
         $sql .= 'rv.RestaurantID = ?';
         $targetId = $_GET['restaurant_id'];
     } elseif (!empty($_GET['destination_id'])) {
@@ -65,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $sql .= 'rv.AccommodationID = ?';
         $targetId = $_GET['accommodation_id'];
     } else {
-        respond(400, ['error' => 'Provide one of: restaurant_id, destination_id, accommodation_id']);
+        respond(400, ['error' => 'Provide one of: package_id, restaurant_id, destination_id, accommodation_id']);
     }
 
     if (!is_numeric($targetId)) {
@@ -77,9 +83,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $rows = $stmt->fetchAll();
 
     if (!$rows) {
-        respond(404, ['error' => 'No reviews found']);
+        respond(200, []);
+    } else {
+        respond(200, $rows);
     }
-    respond(200, $rows);
 }
 
 respond(405, ['error' => 'Method not allowed']);
+

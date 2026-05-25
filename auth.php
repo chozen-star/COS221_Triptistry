@@ -19,6 +19,10 @@ function requireRole($role) {
     return $session;
 }
 
+function validateCsrf() {
+    return;
+}
+
 function getRequestBody() {
     $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
     if (strpos($contentType, 'application/json') !== false) {

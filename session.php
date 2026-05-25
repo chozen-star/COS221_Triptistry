@@ -9,7 +9,8 @@ if (isset($_SESSION['user_id'])) {
     respond(200, [
         'user_id' => $_SESSION['user_id'],
         'user_type' => $_SESSION['user_type'],
-        'name' => $_SESSION['name'] ?? null
+        'name' => $_SESSION['name'] ?? null,
+        'csrf_token' => $_SESSION['csrf_token'] ?? null
     ]);
 } else {
     respond(401, ['error' => 'Not logged in']);

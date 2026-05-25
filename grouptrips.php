@@ -37,6 +37,24 @@ if ($method === 'GET') {
         $params[] = (int)$_GET['agency_id'];
     }
 
+    if (!empty($_GET['enrolled_by'])) {
+        if (!is_numeric($_GET['enrolled_by'])) {
+            respond(400, ['error' => 'Invalid traveller_id']);
+        }
+        $sql .= (strpos($sql, 'WHERE') !== false ? ' AND' : ' WHERE') . ' gt.GroupTripID IN (SELECT GroupTripID FROM group_enrolment WHERE TravellerID = ?)';
+        $params[] = (int)$_GET['enrolled_by'];
+    }
+
+    if (empty($_GET['agency_id'])) {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'agency') {
+            $sql .= (strpos($sql, 'WHERE') !== false ? ' AND' : ' WHERE') . ' gt.AgencyID = ?';
+            $params[] = $_SESSION['user_id'];
+        }
+    }
+
     $sql .= ' ORDER BY gt.StartDate';
 
     $stmt = $pdo->prepare($sql);
@@ -68,7 +86,7 @@ if ($method === 'POST') {
             respond(400, ['error' => 'Trip is full']);
         }
 
-        $stmt = $pdo->prepare('SELECT * FROM enrolled_in WHERE TravelerID = ? AND GroupTripID = ?');
+        $stmt = $pdo->prepare('SELECT * FROM group_enrolment WHERE TravellerID = ? AND GroupTripID = ?');
         $stmt->execute([$travelerId, $tripId]);
         if ($stmt->fetch()) {
             respond(409, ['error' => 'Already enrolled in this trip']);
@@ -76,7 +94,7 @@ if ($method === 'POST') {
 
         $pdo->beginTransaction();
         try {
-            $stmt = $pdo->prepare('INSERT INTO enrolled_in (TravelerID, GroupTripID) VALUES (?, ?)');
+            $stmt = $pdo->prepare('INSERT INTO group_enrolment (TravellerID, GroupTripID) VALUES (?, ?)');
             $stmt->execute([$travelerId, $tripId]);
 
             $stmt = $pdo->prepare('UPDATE grouptrip SET CurrentEnrolment = CurrentEnrolment + 1 WHERE GroupTripID = ?');
@@ -99,12 +117,17 @@ if ($method === 'POST') {
     }
 
     $stmt = $pdo->prepare(
-        'INSERT INTO grouptrip (MaxSize, CurrentEnrolment, Itinerary, StartDate, EndDate, AgencyID)
-         VALUES (?, 0, ?, ?, ?, ?)'
+        'INSERT INTO grouptrip (Name, MaxSize, CurrentEnrolment, Price, Itinerary, StartDate, EndDate, ImageURL, AgencyID)
+         VALUES (?, ?, 0, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
-        (int)$body['MaxSize'], $body['Itinerary'],
-        $body['StartDate'], $body['EndDate'], $agencyId
+        !empty($body['Name']) ? $body['Name'] : 'Group Trip',
+        (int)$body['MaxSize'],
+        !empty($body['Price']) ? (float)$body['Price'] : null,
+        $body['Itinerary'],
+        $body['StartDate'], $body['EndDate'],
+        !empty($body['ImageURL']) ? $body['ImageURL'] : null,
+        $agencyId
     ]);
 
     respond(201, ['message' => 'Group trip created', 'GroupTripID' => $pdo->lastInsertId()]);
@@ -132,12 +155,15 @@ if ($method === 'PUT') {
 
     $body = getRequestBody();
     $stmt = $pdo->prepare(
-        'UPDATE grouptrip SET MaxSize = ?, Itinerary = ?, StartDate = ?, EndDate = ?
+        'UPDATE grouptrip SET Name = ?, MaxSize = ?, Price = ?, Itinerary = ?, StartDate = ?, EndDate = ?, ImageURL = ?
          WHERE GroupTripID = ? AND AgencyID = ?'
     );
     $stmt->execute([
-        (int)($body['MaxSize'] ?? 0), $body['Itinerary'] ?? '',
+        $body['Name'] ?? '', (int)($body['MaxSize'] ?? 0),
+        !empty($body['Price']) ? (float)$body['Price'] : null,
+        $body['Itinerary'] ?? '',
         $body['StartDate'] ?? '', $body['EndDate'] ?? '',
+        $body['ImageURL'] ?? null,
         $tripId, $agencyId
     ]);
 
@@ -145,6 +171,31 @@ if ($method === 'PUT') {
 }
 
 if ($method === 'DELETE') {
+    $session = requireAuth();
+    $userId = $session['user_id'];
+    $userType = $session['user_type'];
+
+    if ($userType === 'traveller') {
+        if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+            respond(400, ['error' => 'Valid GroupTripID required']);
+        }
+        $tripId = (int)$_GET['id'];
+
+        $pdo->beginTransaction();
+        try {
+            $stmt = $pdo->prepare('DELETE FROM group_enrolment WHERE TravellerID = ? AND GroupTripID = ?');
+            $stmt->execute([$userId, $tripId]);
+            $stmt = $pdo->prepare('UPDATE grouptrip SET CurrentEnrolment = GREATEST(CurrentEnrolment - 1, 0) WHERE GroupTripID = ?');
+            $stmt->execute([$tripId]);
+            $pdo->commit();
+            respond(200, ['message' => 'Left group trip']);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+            respond(500, ['error' => 'Failed to leave trip']);
+        }
+        return;
+    }
+
     $session = requireRole('agency');
     $agencyId = $session['user_id'];
 
@@ -166,7 +217,7 @@ if ($method === 'DELETE') {
 
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->prepare('DELETE FROM enrolled_in WHERE GroupTripID = ?');
+        $stmt = $pdo->prepare('DELETE FROM group_enrolment WHERE GroupTripID = ?');
         $stmt->execute([$tripId]);
         $stmt = $pdo->prepare('DELETE FROM grouptrip WHERE GroupTripID = ? AND AgencyID = ?');
         $stmt->execute([$tripId, $agencyId]);
