@@ -60,6 +60,25 @@
     document.getElementById('regForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const formData = new FormData(this);
+
+      const name = formData.get('Name').trim();
+      if (name.length < 2) {
+        alert('Agency name must be at least 2 characters.');
+        return;
+      }
+
+      const website = formData.get('Website').trim();
+      if (!/^[\w.\-]+\.[a-z]{2,}$/i.test(website.replace(/^https?:\/\//, '').replace(/\/$/, ''))) {
+        alert('Please enter a valid website URL (e.g. www.example.com).');
+        return;
+      }
+
+      const password = formData.get('password');
+      if (password.length < 6) {
+        alert('Password must be at least 6 characters.');
+        return;
+      }
+
       try {
         const res = await fetch('api/register_agency.php', { method: 'POST', body: formData });
         const data = await res.json();
