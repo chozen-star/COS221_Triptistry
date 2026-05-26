@@ -6,24 +6,26 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     respond(405, ['error' => 'Method not allowed']);
 }
 
+$baseSelect = 'SELECT a.AccommodationID, a.Location, a.Price, a.DestinationID,
+    d.Name AS DestinationName, d.Country AS DestinationCountry,
+    CASE WHEN h.AccommodationID IS NOT NULL THEN \'Hotel\'
+         WHEN r.AccommodationID IS NOT NULL THEN \'Resort\'
+         WHEN ap.AccommodationID IS NOT NULL THEN \'Apartment\'
+         ELSE NULL
+    END AS AccommodationType
+    FROM accommodation a
+    LEFT JOIN destination d ON d.DestinationID = a.DestinationID
+    LEFT JOIN hotel h ON h.AccommodationID = a.AccommodationID
+    LEFT JOIN resort r ON r.AccommodationID = a.AccommodationID
+    LEFT JOIN apartment ap ON ap.AccommodationID = a.AccommodationID';
+
 if (isset($_GET['id'])) {
     if (!is_numeric($_GET['id'])) {
         respond(400, ['error' => 'Invalid ID']);
     }
     $id = (int)$_GET['id'];
 
-    $stmt = $pdo->prepare(
-        'SELECT a.*,
-            CASE WHEN h.AccommodationID IS NOT NULL THEN \'Hotel\'
-                 WHEN r.AccommodationID IS NOT NULL THEN \'Resort\'
-                 WHEN ap.AccommodationID IS NOT NULL THEN \'Apartment\'
-            END AS AccommodationType
-         FROM accommodation a
-         LEFT JOIN hotel h ON h.AccommodationID = a.AccommodationID
-         LEFT JOIN resort r ON r.AccommodationID = a.AccommodationID
-         LEFT JOIN apartment ap ON ap.AccommodationID = a.AccommodationID
-         WHERE a.AccommodationID = ?'
-    );
+    $stmt = $pdo->prepare($baseSelect . ' WHERE a.AccommodationID = ?');
     $stmt->execute([$id]);
     $row = $stmt->fetch();
 
@@ -33,39 +35,32 @@ if (isset($_GET['id'])) {
 
     $type = $row['AccommodationType'];
     if ($type === 'Hotel') {
-        $stmt = $pdo->prepare('SELECT BedType, BreakfastIncluded FROM hotel WHERE AccommodationID = ?');
+        $stmt = $pdo->prepare('SELECT BedType, Stars FROM hotel WHERE AccommodationID = ?');
         $stmt->execute([$id]);
-        $row['details'] = $stmt->fetch();
+        $row['details'] = $stmt->fetch() ?: [];
     } elseif ($type === 'Resort') {
-        $stmt = $pdo->prepare('SELECT ResortType, KidsClubAvailable, PrivateBeachAccess FROM resort WHERE AccommodationID = ?');
+        $stmt = $pdo->prepare('SELECT ResortType FROM resort WHERE AccommodationID = ?');
         $stmt->execute([$id]);
-        $row['details'] = $stmt->fetch();
+        $row['details'] = $stmt->fetch() ?: [];
     } elseif ($type === 'Apartment') {
-        $stmt = $pdo->prepare('SELECT NumberOfBedrooms, KitchenType, FloorNumber, HasWashingMachine FROM apartment WHERE AccommodationID = ?');
+        $stmt = $pdo->prepare('SELECT Bedrooms FROM apartment WHERE AccommodationID = ?');
         $stmt->execute([$id]);
-        $row['details'] = $stmt->fetch();
+        $row['details'] = $stmt->fetch() ?: [];
+    } else {
+        $row['details'] = [];
     }
 
     respond(200, $row);
 }
 
-$sql = 'SELECT a.*,
-            CASE WHEN h.AccommodationID IS NOT NULL THEN \'Hotel\'
-                 WHEN r.AccommodationID IS NOT NULL THEN \'Resort\'
-                 WHEN ap.AccommodationID IS NOT NULL THEN \'Apartment\'
-            END AS AccommodationType
-         FROM accommodation a
-         LEFT JOIN hotel h ON h.AccommodationID = a.AccommodationID
-         LEFT JOIN resort r ON r.AccommodationID = a.AccommodationID
-         LEFT JOIN apartment ap ON ap.AccommodationID = a.AccommodationID';
+$sql = $baseSelect;
 $params = [];
 
 if (!empty($_GET['destination_id'])) {
     if (!is_numeric($_GET['destination_id'])) {
         respond(400, ['error' => 'Invalid destination_id']);
     }
-    $sql .= ' JOIN acc_dest ad ON ad.AccommodationID = a.AccommodationID';
-    $sql .= ' WHERE ad.DestinationID = ?';
+    $sql .= ' WHERE a.DestinationID = ?';
     $params[] = (int)$_GET['destination_id'];
 }
 

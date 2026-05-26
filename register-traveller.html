@@ -65,6 +65,28 @@
     document.getElementById('regForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const formData = new FormData(this);
+
+      const phone = formData.get('PhoneNumber');
+      if (!/^[\d\s+\-()]{7,20}$/.test(phone)) {
+        alert('Please enter a valid phone number (7-20 digits).');
+        return;
+      }
+
+      const password = formData.get('password');
+      if (password.length < 6) {
+        alert('Password must be at least 6 characters.');
+        return;
+      }
+
+      const dob = formData.get('DOB');
+      if (dob) {
+        const age = Math.floor((new Date() - new Date(dob)) / (365.25 * 24 * 60 * 60 * 1000));
+        if (age < 13) {
+          alert('You must be at least 13 years old to register.');
+          return;
+        }
+      }
+
       try {
         const res = await fetch('api/register_traveller.php', { method: 'POST', body: formData });
         const data = await res.json();

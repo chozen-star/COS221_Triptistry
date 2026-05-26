@@ -11,11 +11,11 @@ if (isset($_GET['id'])) {
         respond(400, ['error' => 'Invalid ID']);
     }
     $stmt = $pdo->prepare(
-        'SELECT r.*, GROUP_CONCAT(DISTINCT rc.CuisineType) AS CuisineTypes,
+        'SELECT r.*, GROUP_CONCAT(DISTINCT rc.Cuisine) AS CuisineTypes,
                 GROUP_CONCAT(DISTINCT rl.Location) AS Locations
          FROM restaurant r
-         LEFT JOIN restaurant_cuisinetype rc ON rc.RestaurantID = r.RestaurantID
-         LEFT JOIN restaurant_location rl ON rl.RestaurantID = r.RestaurantID
+         LEFT JOIN pack_cuisine rc ON rc.RestaurantID = r.RestaurantID
+         LEFT JOIN rest_location rl ON rl.RestaurantID = r.RestaurantID
          WHERE r.RestaurantID = ?
          GROUP BY r.RestaurantID'
     );
@@ -27,11 +27,11 @@ if (isset($_GET['id'])) {
     respond(200, $row);
 }
 
-$sql = 'SELECT r.*, GROUP_CONCAT(DISTINCT rc.CuisineType) AS CuisineTypes,
+$sql = 'SELECT r.*, GROUP_CONCAT(DISTINCT rc.Cuisine) AS CuisineTypes,
                 GROUP_CONCAT(DISTINCT rl.Location) AS Locations
          FROM restaurant r
-         LEFT JOIN restaurant_cuisinetype rc ON rc.RestaurantID = r.RestaurantID
-         LEFT JOIN restaurant_location rl ON rl.RestaurantID = r.RestaurantID';
+         LEFT JOIN pack_cuisine rc ON rc.RestaurantID = r.RestaurantID
+         LEFT JOIN rest_location rl ON rl.RestaurantID = r.RestaurantID';
 $conditions = [];
 $params = [];
 
@@ -44,8 +44,8 @@ if (!empty($_GET['destination_id'])) {
 }
 
 if (!empty($_GET['cuisine'])) {
-    $sql .= ' JOIN restaurant_cuisinetype rc2 ON rc2.RestaurantID = r.RestaurantID';
-    $conditions[] = 'rc2.CuisineType = ?';
+    $sql .= ' JOIN pack_cuisine rc2 ON rc2.RestaurantID = r.RestaurantID';
+    $conditions[] = 'rc2.Cuisine = ?';
     $params[] = $_GET['cuisine'];
 }
 

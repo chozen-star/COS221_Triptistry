@@ -34,9 +34,83 @@
 
 <div id="toastContainer"></div>
 
+<div class="modal-overlay" id="bookModal" style="display:none;">
+  <div class="modal-box" style="background:white;border:3px solid var(--ink);box-shadow:var(--shadow);padding:40px;max-width:560px;width:90%;">
+    <h2 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:16px;">Confirm Booking</h2>
+    <div id="modalPkgInfo"></div>
+    <div style="margin-top:20px;font-size:13px;color:var(--muted);">
+      <p>By confirming, you agree to book this package. The booking will appear in your dashboard.</p>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:12px;">
+      <button class="btn btn-primary" id="confirmBookBtn" style="flex:1;">Yes, Book It</button>
+      <button class="btn" onclick="closeBookModal()" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = 'api/';
 let currentUser = null;
+
+const IMG = {
+  dest: [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1473221326025-9183b464bb7e?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&h=400&fit=crop',
+  ],
+  hotel: [
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600&h=400&fit=crop',
+  ],
+  attr: [
+    'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1549877452-9c387954fbc2?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',
+  ],
+  rest: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop',
+  ],
+  trip: [
+    'https://images.unsplash.com/photo-1530789253388-930c80bdc8ce?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1468817814611-b7edf94b5d60?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?w=600&h=400&fit=crop',
+    'https://images.unsplash.com/photo-1488085061387-422e29b40080?w=600&h=400&fit=crop',
+  ]
+};
+
+function showDetailModal(title, content) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = '<div class="modal-box" style="background:white;border:3px solid var(--ink);box-shadow:var(--shadow);padding:32px;max-width:640px;width:90%;max-height:85vh;overflow-y:auto;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;">' +
+    '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;">' + esc(title) + '</h2>' +
+    '<button class="btn" style="padding:6px 10px;font-size:10px;" onclick="this.closest(\'.modal-overlay\').remove()">Close</button>' +
+    '</div>' +
+    content +
+    '</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+
+function imgUrl(pool, seed) { return IMG[pool][(seed || 1) % IMG[pool].length]; }
 
 async function apiCall(url, options = {}) {
   const res = await fetch(API + url, { credentials: 'same-origin', ...options });
@@ -44,24 +118,35 @@ async function apiCall(url, options = {}) {
   return { status: res.status, data: await res.json() };
 }
 
-function toast(msg, type = 'info') {
+function toast(msg, type = 'info') {/*
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
   el.textContent = msg;
   document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => el.remove(), 3000);*/
 }
 
 function stars(n) {
-  let s = ''; for (let i = 1; i <= 5; i++) s += i <= n ? '★' : '☆'; return s;
+  let s = ''; for (let i = 1; i <= 5; i++) s += i <= n ? '\u2605' : '\u2606'; return s;
+}
+
+function esc(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 async function init() {
   const r = await apiCall('session.php');
   if (!r || r.status !== 200) return;
+  if (r.data.user_type !== 'traveller') { window.location.href = 'login-traveller.html'; return; }
   currentUser = r.data;
   document.getElementById('sideName').textContent = r.data.name || '---';
   loadTab('packages');
+  document.getElementById('bookModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBookModal();
+  });
 }
 
 document.querySelectorAll('.dash-nav a[data-tab]').forEach(a => {
@@ -75,7 +160,7 @@ document.querySelectorAll('.dash-nav a[data-tab]').forEach(a => {
 
 async function loadTab(tab) {
   const main = document.getElementById('mainContent');
-  main.innerHTML = '<div class="loading">Loading...</div>';
+  main.innerHTML = '<div class="loading"><div class="pulse"></div> Loading...</div>';
   try {
     switch (tab) {
       case 'packages': await loadPackages(); break;
@@ -93,109 +178,303 @@ async function loadTab(tab) {
 
 // ---- PACKAGES ----
 async function loadPackages() {
-  const r = await apiCall('packages.php');
+  const sort = document.getElementById('pkgSort')?.value || '';
+  const min = document.getElementById('pkgMin')?.value || '';
+  const max = document.getElementById('pkgMax')?.value || '';
+  const dest = document.getElementById('pkgDest')?.value || '';
+  const minRat = document.getElementById('pkgMinRating')?.value || '';
+  const minDur = document.getElementById('pkgMinDur')?.value || '';
+  const maxDur = document.getElementById('pkgMaxDur')?.value || '';
+  const type = document.getElementById('pkgTypeFilter')?.value || '';
+
+  const query = new URLSearchParams();
+  if (sort) query.set('sort', sort);
+  if (min) query.set('min_price', min);
+  if (max) query.set('max_price', max);
+  if (dest) query.set('destination_id', dest);
+  if (minRat) query.set('min_rating', minRat);
+  if (minDur) query.set('min_duration', minDur);
+  if (maxDur) query.set('max_duration', maxDur);
+  if (type) query.set('type', type);
+  const qs = query.toString();
+
+  const r = await apiCall('packages.php' + (qs ? '?' + qs : ''));
   const pkgs = r.data;
   let html = '<h2>Browse Packages</h2><div class="inline-form">';
-  html += '<div class="field"><span>Sort</span><select id="pkgSort" onchange="loadPackages()"><option value="">Default</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="rating">By Rating</option></select></div>';
+  html += '<div class="field"><span>Sort</span><select id="pkgSort" onchange="loadPackages()"><option value="">Default</option><option value="price_asc">Price: Low to High</option><option value="price_desc">Price: High to Low</option><option value="rating">By Rating</option><option value="duration_asc">Duration: Short to Long</option><option value="duration_desc">Duration: Long to Short</option></select></div>';
+  html += '<div class="field"><span>Type</span><select id="pkgTypeFilter" onchange="loadPackages()"><option value="">All</option><option value="Bundled">Bundled</option><option value="Individual">Individual</option></select></div>';
   html += '<div class="field"><span>Min Price</span><input type="number" id="pkgMin" placeholder="e.g. 5000" onchange="loadPackages()"></div>';
   html += '<div class="field"><span>Max Price</span><input type="number" id="pkgMax" placeholder="e.g. 30000" onchange="loadPackages()"></div>';
+  html += '<div class="field"><span>Destination</span><select id="pkgDest" onchange="loadPackages()"><option value="">All Destinations</option></select></div>';
+  html += '<div class="field"><span>Min Rating</span><input type="number" id="pkgMinRating" placeholder="1-5" min="1" max="5" step="0.1" onchange="loadPackages()"></div>';
+  html += '<div class="field"><span>Min Days</span><input type="number" id="pkgMinDur" placeholder="Min duration" onchange="loadPackages()"></div>';
+  html += '<div class="field"><span>Max Days</span><input type="number" id="pkgMaxDur" placeholder="Max duration" onchange="loadPackages()"></div>';
   html += '</div><div class="cards">';
   if (Array.isArray(pkgs)) {
     if (pkgs.length === 0) html += '<div class="empty"><strong>No packages found</strong></div>';
     pkgs.forEach(p => {
-      html += `<div class="card clickable" onclick="bookPackage(${p.PackageID}, '${p.Type || ''}', ${p.Price || 0})">
-        <div class="body">
-          <div class="meta"><span>${p.Type || 'Package'}</span><span class="stars">${stars(Math.round(p.AgencyRating || 0))}</span></div>
-          <h3>Package #${p.PackageID}</h3>
-          <p style="font-size:12px;color:var(--muted);margin-top:4px;">Agency: ${p.AgencyName || '---'}</p>
-          <div class="price"><span class="eyebrow">Price</span><strong>R${Number(p.Price).toLocaleString()}</strong></div>
-          <button class="btn btn-primary" style="margin-top:8px;width:100%;font-size:10px;">Book Now</button>
+      const imgSrc = p.ImageURL || imgUrl('dest', p.PackageID);
+      const pkgName = esc(p.Name) || 'Package #' + p.PackageID;
+      html += `<div class="card card-rich">
+        <div class="cr-thumb"><img src="${imgSrc}" alt="${pkgName}" loading="lazy" onerror="this.src='${imgUrl('dest', p.PackageID + 5)}'"><span class="img-tag">${esc(p.Type) || 'PACKAGE'}</span></div>
+        <div class="cr-body">
+          <div class="cr-meta"><span>${esc(p.AgencyName) || '---'}</span><span class="stars">${stars(Math.round(p.AgencyRating || 0))}</span></div>
+          <h3>${pkgName}</h3>
+          ${p.DurationDays ? '<p style="font-size:11px;color:var(--muted);">' + esc(String(p.DurationDays)) + ' days</p>' : ''}
+          <div class="cr-footer">
+            <div style="font-family:\'Outfit\',sans-serif;font-size:22px;font-weight:900;">R${Number(p.Price).toLocaleString()}</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" style="padding:10px 14px;font-size:10px;" onclick="event.stopPropagation();window.location.href='package-details.html?id=${p.PackageID}'">View</button>
+              <button class="btn btn-primary" style="padding:10px 16px;font-size:10px;" onclick="event.stopPropagation();showBookModal(${p.PackageID}, '${pkgName.replace(/'/g, "\\'")}', ${p.Price || 0}, '${esc(p.AgencyName || '')}')">Book Now</button>
+            </div>
+          </div>
         </div>
       </div>`;
     });
   }
   html += '</div>';
   document.getElementById('mainContent').innerHTML = html;
-  document.getElementById('pkgSort').value = new URLSearchParams(location.search).get('sort') || '';
+
+  (async function() {
+    try {
+      var destRes = await fetch(API + 'destinations.php').then(function(r) { return r.json(); });
+      var destSel = document.getElementById('pkgDest');
+      if (destSel && Array.isArray(destRes)) {
+        destRes.forEach(function(d) {
+          var opt = document.createElement('option');
+          opt.value = d.DestinationID;
+          opt.textContent = d.Name + ' (' + (d.Country || '') + ')';
+          destSel.appendChild(opt);
+        });
+      }
+    } catch(e) {}
+  })();
+
+  if (qs) {
+    const params = new URLSearchParams(qs);
+    const els = { pkgSort:'sort', pkgTypeFilter:'type', pkgMin:'min_price', pkgMax:'max_price', pkgMinRating:'min_rating', pkgMinDur:'min_duration', pkgMaxDur:'max_duration' };
+    for (const [id, key] of Object.entries(els)) {
+      const el = document.getElementById(id);
+      if (el && params.get(key)) el.value = params.get(key);
+    }
+    if (params.get('destination_id')) {
+      setTimeout(function() {
+        var d = document.getElementById('pkgDest');
+        if (d) d.value = params.get('destination_id');
+      }, 500);
+    }
+  }
 }
 
-async function bookPackage(id, type, price) {
-  if (!confirm('Book Package #' + id + ' (' + type + ') for R' + price.toLocaleString() + '?')) return;
+function showBookModal(id, name, price, agencyName) {
+  document.getElementById('modalPkgInfo').innerHTML = `<div style="background:var(--bg);padding:20px;">
+    <h3 style="font-family:'Outfit',sans-serif;">${esc(String(name))}</h3>
+    <p style="margin-top:8px;">by ${esc(String(agencyName || '---'))}</p>
+    <div style="font-family:'Outfit',sans-serif;font-size:28px;font-weight:900;margin-top:12px;">R${Number(price).toLocaleString()}</div>
+  </div>`;
+  document.getElementById('bookModal').style.display = 'flex';
+  document.getElementById('confirmBookBtn').onclick = function() { confirmBook(id); };
+}
+function closeBookModal() { document.getElementById('bookModal').style.display = 'none'; }
+async function confirmBook(id) {
   const r = await apiCall('bookings.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ PackageID: id }) });
-  if (r.status === 201) toast('Booked successfully!', 'success');
+  if (r.status === 201) { closeBookModal(); toast('Booked successfully!', 'success'); loadBookings(); }
   else if (r.status === 409) toast('Already booked!', 'error');
   else toast(r.data.error || 'Failed', 'error');
 }
 
 // ---- BOOKINGS ----
 async function loadBookings() {
-  const r = await apiCall('bookings.php');
-  let html = '<h2>My Bookings</h2>';
-  if (Array.isArray(r.data) && r.data.length > 0) {
-    html += '<div class="cards">';
-    r.data.forEach(b => {
-      html += `<div class="card"><div class="body">
-        <span class="badge badge-success">Booked</span>
-        <h3 style="margin-top:8px;">Package #${b.PackageID}</h3>
-        <p style="font-size:12px;color:var(--muted);">Agency: ${b.AgencyName || '---'}</p>
-        <div class="price" style="margin-top:8px;"><strong>R${Number(b.Price || 0).toLocaleString()}</strong></div>
-      </div></div>`;
-    });
-    html += '</div>';
-  } else {
+  var r = await apiCall('bookings.php');
+  var tripsR = await apiCall('grouptrips.php?enrolled_by=' + (currentUser ? currentUser.user_id : ''));
+  var trips = (tripsR && Array.isArray(tripsR.data)) ? tripsR.data : [];
+  var html = '<h2>My Bookings</h2>';
+  var hasBookings = r && Array.isArray(r.data) && r.data.length > 0;
+  var hasTrips = trips.length > 0;
+  if (!hasBookings && !hasTrips) {
     html += '<div class="empty"><strong>No bookings yet</strong><p>Browse packages and book your first trip!</p></div>';
+  } else {
+    html += '<div class="cards">';
+    if (hasBookings) r.data.forEach(function(b) {
+      html += '<div class="card card-rich"><div class="cr-thumb"><img src="' + imgUrl('dest', b.PackageID) + '" alt="Booking" loading="lazy"><span class="img-tag success-tag">Booked</span></div><div class="cr-body"><h3>' + esc(b.Name || 'Package #' + b.PackageID) + '</h3><p style="font-size:12px;color:var(--muted);margin-top:4px;">' + esc(b.AgencyName || '---') + '</p><div class="cr-footer"><div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:900;">R' + Number(b.Price || 0).toLocaleString() + '</div><div style="display:flex;gap:6px;"><button class="btn" style="padding:8px 12px;font-size:9px;" onclick="reviewPackage(' + b.PackageID + ', \'' + esc(b.Name || '').replace(/'/g, "\\'") + '\')">Review</button><button class="btn btn-primary" style="padding:8px 12px;font-size:9px;" onclick="cancelBooking(' + b.PackageID + ')">Cancel</button></div></div></div></div>';
+    });
+    if (hasTrips) trips.forEach(function(t) {
+      html += '<div class="card card-rich"><div class="cr-thumb"><img src="' + (t.ImageURL || imgUrl('trip', t.GroupTripID)) + '" alt="Trip" loading="lazy" onerror="this.src=\'' + imgUrl('trip', t.GroupTripID + 3) + '\'"><span class="img-tag success-tag">Enrolled</span></div><div class="cr-body"><h3>' + esc(t.Name || 'Trip #' + t.GroupTripID) + '</h3><p style="font-size:12px;color:var(--muted);margin-top:4px;">' + esc(t.AgencyName || '---') + '</p><p style="font-size:11px;">' + (t.StartDate || '?') + ' → ' + (t.EndDate || '?') + '</p><div class="cr-footer"><span class="badge badge-success" style="font-size:9px;">Enrolled</span><button class="btn btn-primary" style="padding:8px 12px;font-size:9px;" onclick="cancelEnrolment(' + t.GroupTripID + ')">Leave</button></div></div></div>';
+    });
+    html += '</div><div id="pkgReviewForm"></div>';
   }
   document.getElementById('mainContent').innerHTML = html;
 }
 
-// ---- REVIEWS ----
-function showReviewForm() {
-  const el = document.getElementById('reviewFormArea');
-  el.innerHTML = `
-  <div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">
-    <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:14px;">Write a Review</h3>
+async function cancelEnrolment(tripId) {
+  if (!confirm('Leave this group trip?')) return;
+  var r = await apiCall('grouptrips.php?id=' + tripId, { method: 'DELETE' });
+  if (r.status === 200) { toast('Left group trip', 'success'); loadBookings(); loadGroupTrips(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+function reviewPackage(pkgId, pkgName) {
+  document.getElementById('pkgReviewForm').innerHTML = `
+  <div style="background:white;border:2px solid var(--ink);padding:20px;margin-top:20px;box-shadow:var(--shadow);">
+    <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:14px;">Review: ${esc(pkgName)}</h3>
     <div class="form-grid">
-      <label class="field form-full"><span>Rating (1-5)</span><input type="number" id="rvRating" min="1" max="5" value="5"></label>
-      <label class="field form-full"><span>Feedback</span><textarea id="rvFeedback" rows="3"></textarea></label>
-      <label class="field"><span>Target Type</span><select id="rvTargetType"><option value="destination">Destination</option><option value="restaurant">Restaurant</option><option value="accommodation">Accommodation</option></select></label>
-      <label class="field"><span>Target ID</span><input type="number" id="rvTargetId" value="1"></label>
+      <label class="field"><span>Rating (1-5)</span><input type="number" id="rvPkgRating" min="1" max="5" value="5"></label>
+      <label class="field"><span>Feedback</span><textarea id="rvPkgFeedback" rows="3" placeholder="Share your experience..."></textarea></label>
     </div>
-    <button class="btn btn-primary" onclick="submitReview()" style="margin-top:10px;">Submit Review</button>
+    <button class="btn btn-primary" onclick="submitPackageReview(${pkgId})" style="margin-top:10px;">Submit Review</button>
+    <button class="btn" onclick="document.getElementById('pkgReviewForm').innerHTML=''" style="margin-top:10px;margin-left:8px;">Cancel</button>
   </div>`;
 }
 
+async function submitPackageReview(pkgId) {
+  var body = { StarRating: parseInt(document.getElementById('rvPkgRating').value), Feedback: document.getElementById('rvPkgFeedback').value, PackageID: pkgId };
+  var r = await apiCall('reviews.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r.status === 201) { toast('Review submitted!', 'success'); document.getElementById('pkgReviewForm').innerHTML = ''; }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+async function cancelBooking(packageId) {
+  if (!confirm('Cancel booking for this package?')) return;
+  var r = await apiCall('bookings.php?package_id=' + packageId, { method: 'DELETE' });
+  if (r.status === 200) { toast('Booking cancelled', 'success'); loadBookings(); }
+  else toast(r.data.error || 'Failed', 'error');
+}
+
+// ---- REVIEWS ----
+var reviewLists = {};
+
+async function loadReviewLists() {
+  try {
+    var results = await Promise.all([
+      apiCall('packages.php'),
+      apiCall('destinations.php'),
+      apiCall('restaurants.php'),
+      apiCall('accommodations.php')
+    ]);
+    reviewLists.package = (results[0] && Array.isArray(results[0].data)) ? results[0].data : [];
+    reviewLists.destination = (results[1] && Array.isArray(results[1].data)) ? results[1].data : [];
+    reviewLists.restaurant = (results[2] && Array.isArray(results[2].data)) ? results[2].data : [];
+    reviewLists.accommodation = (results[3] && Array.isArray(results[3].data)) ? results[3].data : [];
+  } catch(e) {}
+}
+
+function getItemName(type, id) {
+  var list = reviewLists[type] || [];
+  for (var i = 0; i < list.length; i++) {
+    if (type === 'package' && list[i].PackageID == id) return list[i].Name || 'Package #' + id;
+    if (type === 'destination' && list[i].DestinationID == id) return list[i].Name || 'Destination #' + id;
+    if (type === 'restaurant' && list[i].RestaurantID == id) return list[i].Name || 'Restaurant #' + id;
+    if (type === 'accommodation' && list[i].AccommodationID == id) return list[i].Location || 'Accommodation #' + id;
+  }
+  return type.charAt(0).toUpperCase() + type.slice(1) + ' #' + id;
+}
+
+function buildItemSelect(name, type, selectedId) {
+  var list = reviewLists[type] || [];
+  var h = '<select id="' + name + '" onchange="fetchBrowsedReviews()">';
+  h += '<option value="">-- Select --</option>';
+  list.forEach(function(item) {
+    var id, label;
+    if (type === 'package') { id = item.PackageID; label = item.Name || 'Package #' + id; }
+    else if (type === 'destination') { id = item.DestinationID; label = item.Name || 'Destination #' + id; }
+    else if (type === 'restaurant') { id = item.RestaurantID; label = item.Name || 'Restaurant #' + id; }
+    else if (type === 'accommodation') { id = item.AccommodationID; label = item.Location || 'Accommodation #' + id; }
+    h += '<option value="' + id + '"' + (id == selectedId ? ' selected' : '') + '>' + esc(label) + '</option>';
+  });
+  h += '</select>';
+  return h;
+}
+
+function buildReviewFormItemSelect(name, type) {
+  var list = reviewLists[type] || [];
+  var h = '<select id="' + name + '">';
+  h += '<option value="">-- Select --</option>';
+  list.forEach(function(item) {
+    var id, label;
+    if (type === 'package') { id = item.PackageID; label = item.Name || 'Package #' + id; }
+    else if (type === 'destination') { id = item.DestinationID; label = item.Name || 'Destination #' + id; }
+    else if (type === 'restaurant') { id = item.RestaurantID; label = item.Name || 'Restaurant #' + id; }
+    else if (type === 'accommodation') { id = item.AccommodationID; label = item.Location || 'Accommodation #' + id; }
+    h += '<option value="' + id + '">' + esc(label) + '</option>';
+  });
+  h += '</select>';
+  return h;
+}
+
+function showReviewForm() {
+  var type = document.getElementById('rvTargetTypeForm') ? document.getElementById('rvTargetTypeForm').value : 'package';
+  var el = document.getElementById('reviewFormArea');
+  el.innerHTML = '<div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">' +
+    '<h3 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:14px;">Write a Review</h3>' +
+    '<div class="form-grid">' +
+    '<label class="field form-full"><span>Rating (1-5)</span><input type="number" id="rvRating" min="1" max="5" value="5"></label>' +
+    '<label class="field form-full"><span>Feedback</span><textarea id="rvFeedback" rows="3"></textarea></label>' +
+    '<label class="field"><span>Target Type</span><select id="rvTargetTypeForm" onchange="showReviewForm()"><option value="package"' + (type==='package'?' selected':'') + '>Package</option><option value="destination"' + (type==='destination'?' selected':'') + '>Destination</option><option value="restaurant"' + (type==='restaurant'?' selected':'') + '>Restaurant</option><option value="accommodation"' + (type==='accommodation'?' selected':'') + '>Accommodation</option></select></label>' +
+    '<label class="field"><span>Target</span>' + buildReviewFormItemSelect('rvTargetIdForm', type) + '</label>' +
+    '</div>' +
+    '<button class="btn btn-primary" onclick="submitReview()" style="margin-top:10px;">Submit Review</button>' +
+    '</div>';
+}
+
 async function submitReview() {
-  const body = {
+  var type = document.getElementById('rvTargetTypeForm').value;
+  var targetId = document.getElementById('rvTargetIdForm').value;
+  if (!targetId) { toast('Please select a target', 'error'); return; }
+  var body = {
     StarRating: parseInt(document.getElementById('rvRating').value),
     Feedback: document.getElementById('rvFeedback').value,
   };
-  const type = document.getElementById('rvTargetType').value;
-  body[type.charAt(0).toUpperCase() + type.slice(1) + 'ID'] = parseInt(document.getElementById('rvTargetId').value);
-  const r = await apiCall('reviews.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  body[type.charAt(0).toUpperCase() + type.slice(1) + 'ID'] = parseInt(targetId);
+  var r = await apiCall('reviews.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (r.status === 201) { toast('Review submitted!', 'success'); loadReviews(); }
   else toast(r.data.error || 'Failed', 'error');
 }
 
+async function fetchBrowsedReviews() {
+  var type = document.getElementById('rvViewType').value;
+  var id = document.getElementById('rvViewId').value;
+  var el = document.getElementById('reviewList');
+  if (!id) { el.innerHTML = '<div class="empty">Select an item above to see reviews</div>'; return; }
+  el.innerHTML = '<div class="loading">Loading...</div>';
+  var r = await apiCall('reviews.php?' + type + '_id=' + id);
+  var html = '';
+  if (Array.isArray(r.data) && r.data.length > 0) {
+    html = '<h3 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin:12px 0;">Reviews for ' + esc(getItemName(type, id)) + '</h3>';
+    r.data.forEach(function(rv) {
+      html += '<div style="background:white;border:2px solid var(--ink);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);">' +
+        '<div class="stars">' + stars(rv.StarRating) + '</div>' +
+        '<p style="margin-top:6px;">' + esc(rv.Feedback) + '</p>' +
+        '<div class="meta" style="margin-top:6px;display:flex;gap:12px;"><span>By: ' + esc(rv.TravellerName || 'Anonymous') + '</span><span>' + esc(rv.DateSubmitted || '') + '</span></div>' +
+        '</div>';
+    });
+  } else {
+    html = '<div class="empty"><strong>No reviews yet for this item</strong></div>';
+  }
+  el.innerHTML = html;
+}
+
 async function loadReviews() {
-  let html = '<h2>Reviews</h2><div id="reviewFormArea"></div>';
-  html += '<div class="inline-form"><div class="field"><span>View reviews for</span><select id="rvViewType" onchange="loadReviews()"><option value="destination">Destination</option><option value="restaurant">Restaurant</option><option value="accommodation">Accommodation</option></select></div><div class="field"><span>ID</span><input type="number" id="rvViewId" value="1" onchange="loadReviews()"></div></div>';
-  html += '<div id="reviewList"></div>';
+  if (Object.keys(reviewLists).length === 0) await loadReviewLists();
+  var html = '<h2>Reviews</h2>';
+  var viewType = 'package';
+
+  html += '<div style="background:white;border:2px solid var(--ink);padding:20px;margin-bottom:20px;box-shadow:var(--shadow);">';
+  html += '<h3 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:14px;">Browse Reviews</h3>';
+  html += '<div class="inline-form" style="margin-bottom:0;">';
+  html += '<div class="field"><span>Type</span><select id="rvViewType" onchange="updateViewSelect()"><option value="package" selected>Package</option><option value="destination">Destination</option><option value="restaurant">Restaurant</option><option value="accommodation">Accommodation</option></select></div>';
+  html += '<div class="field"><span>Item</span>' + buildItemSelect('rvViewId', viewType, '') + '</div>';
+  html += '</div></div>';
+
+  html += '<div id="reviewFormArea"></div>';
+  html += '<div id="reviewList"><div class="empty">Select an item above to see reviews</div></div>';
   document.getElementById('mainContent').innerHTML = html;
   showReviewForm();
-  const type = document.getElementById('rvViewType').value;
-  const id = document.getElementById('rvViewId').value;
-  const r = await apiCall('reviews.php?' + type + '_id=' + id);
-  let rhtml = '';
-  if (Array.isArray(r.data) && r.data.length > 0) {
-    r.data.forEach(rv => {
-      rhtml += `<div style="background:white;border:2px solid var(--ink);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);">
-        <div class="stars">${stars(rv.StarRating)}</div>
-        <p style="margin-top:6px;">${rv.Feedback}</p>
-        <div class="meta" style="margin-top:6px;"><span>By: ${rv.TravellerName || 'Anonymous'}</span><span>${rv.DateSubmitted || ''}</span></div>
-      </div>`;
-    });
-  } else { rhtml = '<div class="empty"><strong>No reviews found</strong></div>'; }
-  document.getElementById('reviewList').innerHTML = rhtml;
+}
+
+function updateViewSelect() {
+  var type = document.getElementById('rvViewType').value;
+  var selDiv = document.getElementById('rvViewId').parentNode;
+  selDiv.innerHTML = '<span>Item</span>' + buildItemSelect('rvViewId', type, '');
 }
 
 // ---- GROUP TRIPS ----
@@ -205,96 +484,312 @@ async function loadGroupTrips() {
   if (Array.isArray(r.data)) {
     r.data.forEach(t => {
       const full = t.CurrentEnrolment >= t.MaxSize;
-      html += `<div class="card"><div class="body">
-        <span class="badge ${full ? 'badge-warn' : 'badge-success'}">${full ? 'FULL' : 'Open'}</span>
-        <h3 style="margin-top:8px;">Trip #${t.GroupTripID}</h3>
-        <p style="font-size:12px;color:var(--muted);">Agency: ${t.AgencyName || '---'}</p>
-        <p style="font-size:12px;">Enrolled: ${t.CurrentEnrolment}/${t.MaxSize}</p>
-        <p style="font-size:11px;color:var(--muted);">${t.Itinerary ? t.Itinerary.substring(0,80) : ''}...</p>
-        <p style="font-size:11px;">${t.StartDate || ''} → ${t.EndDate || ''}</p>
-        ${!full ? `<button class="btn btn-primary" style="margin-top:8px;width:100%;font-size:10px;" onclick="enrolTrip(${t.GroupTripID})">Enrol Now</button>` : ''}
-      </div></div>`;
+      html += `<div class="card card-rich">
+        <div class="cr-thumb"><img src="${t.ImageURL || imgUrl('trip', t.GroupTripID)}" alt="Trip" loading="lazy" onerror="this.src='${imgUrl('trip', t.GroupTripID + 3)}'"><span class="img-tag ${full ? '' : 'success-tag'}">${full ? 'FULL' : 'OPEN'}</span></div>
+        <div class="cr-body">
+          <div class="cr-meta"><span>${esc(t.AgencyName) || '---'}</span><span>${t.CurrentEnrolment}/${t.MaxSize} enrolled</span></div>
+          <h3>${esc(t.Name) || 'Trip #' + t.GroupTripID}</h3>
+          <p style="font-size:11px;color:var(--muted);margin-top:6px;">${t.Itinerary ? esc(t.Itinerary).substring(0,80) : ''}...</p>
+          <div class="cr-footer">
+            <span style="font-size:11px;">${t.StartDate || ''} → ${t.EndDate || ''}</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn" style="padding:10px 14px;font-size:10px;" onclick="event.stopPropagation();viewTripDetails(${t.GroupTripID})">View</button>
+              ${!full ? `<button class="btn btn-primary" style="padding:10px 16px;font-size:10px;" onclick="event.stopPropagation();showEnrolModal(${t.GroupTripID}, '${(t.Name || 'Trip #'+t.GroupTripID).replace(/'/g, "\\'")}')">Enrol</button>` : '<span class="badge badge-warn">Full</span>'}
+            </div>
+          </div>
+        </div>
+      </div>`;
     });
   }
-  html += '</div>';
+  html += '</div><div id="tripDetailArea"></div>';
   document.getElementById('mainContent').innerHTML = html;
 }
 
-async function enrolTrip(id) {
-  const r = await apiCall('grouptrips.php?action=enrol', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ GroupTripID: id }) });
-  if (r.status === 200) { toast('Enrolled!', 'success'); loadGroupTrips(); }
-  else if (r.status === 400) toast(r.data.error, 'error');
-  else if (r.status === 409) toast('Already enrolled', 'error');
-  else toast(r.data.error || 'Failed', 'error');
+async function viewTripDetails(id) {
+  var detailArea = document.getElementById('tripDetailArea');
+  detailArea.innerHTML = '<div style="text-align:center;padding:20px;"><div class="pulse"></div></div>';
+  var r = await apiCall('grouptrips.php?id=' + id);
+  if (r.status !== 200) { detailArea.innerHTML = ''; toast('Could not load trip details', 'error'); return; }
+  var t = r.data;
+  detailArea.innerHTML = `<div style="background:white;border:2px solid var(--ink);padding:24px;margin-top:20px;box-shadow:var(--shadow);">
+    <div style="display:flex;justify-content:space-between;align-items:start;">
+      <div>
+        <span class="eyebrow">${esc(t.Name) || 'Group Trip #' + t.GroupTripID}</span>
+        <h3 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-top:4px;">${esc(t.AgencyName) || '---'}</h3>
+      </div>
+      <button class="btn" style="padding:6px 10px;font-size:10px;" onclick="document.getElementById('tripDetailArea').innerHTML=''">Close</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;">
+      <div><span style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);">Duration</span><p style="font-weight:700;">${(t.StartDate||'?') + ' → ' + (t.EndDate||'?')}</p></div>
+      <div><span style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);">Capacity</span><p style="font-weight:700;">${t.CurrentEnrolment}/${t.MaxSize} enrolled</p></div>
+      <div><span style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);">Start</span><p style="font-weight:700;">${t.StartDate || 'TBA'}</p></div>
+    </div>
+    <div style="margin-top:20px;">
+      <span style="font-size:10px;font-weight:800;text-transform:uppercase;color:var(--muted);">Itinerary</span>
+      <p style="margin-top:6px;font-size:14px;line-height:1.8;white-space:pre-wrap;">${esc(t.Itinerary || 'No itinerary provided.')}</p>
+    </div>
+  </div>`;
 }
 
-// ---- BROWSE TABS ----
-async function loadDestinations() {
-  const r = await apiCall('destinations.php');
-  let html = '<h2>Destinations</h2><div class="cards">';
-  if (Array.isArray(r.data)) r.data.forEach(d => {
-    html += `<div class="card"><div class="body">
-      <h3>${d.Name || '---'}</h3>
-      <div class="meta"><span>${d.Country || ''}, ${d.Region || ''}</span><span>${d.RestaurantCount || 0} restaurants</span></div>
-      <p style="font-size:12px;color:var(--muted);margin-top:6px;">${(d.Description || '').substring(0,120)}</p>
-    </div></div>`;
+function showEnrolModal(tripId, tripName) {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.style.display = 'flex';
+  overlay.innerHTML = `<div class="modal-box" style="background:white;border:3px solid var(--ink);box-shadow:var(--shadow);padding:40px;max-width:480px;width:90%;">
+    <h2 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:16px;">Confirm Enrolment</h2>
+    <p>Are you sure you want to enrol in <strong>${tripName}</strong>?</p>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;">You will be registered as a participant and the enrolment will appear in your bookings.</p>
+    <div style="margin-top:24px;display:flex;gap:12px;">
+      <button class="btn btn-primary" id="confirmEnrolBtn" style="flex:1;">Yes, Enrol Me</button>
+      <button class="btn" onclick="this.closest('.modal-overlay').remove()" style="flex:1;">Cancel</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#confirmEnrolBtn').addEventListener('click', async function() {
+    var r = await apiCall('grouptrips.php?action=enrol', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ GroupTripID: tripId }) });
+    if (r.status === 200) { toast('Enrolled!', 'success'); overlay.remove(); loadGroupTrips(); loadBookings(); }
+    else if (r.status === 400) toast(r.data.error || 'Failed', 'error');
+    else if (r.status === 409) toast('Already enrolled', 'error');
+    else toast(r.data.error || 'Failed', 'error');
   });
-  html += '</div>';
-  document.getElementById('mainContent').innerHTML = html;
 }
 
+// ---- DESTINATIONS ----
+var destDataCache = {};
+
+async function showDestDetail(id) {
+  var d = destDataCache[id];
+  if (!d) {
+    var r = await apiCall('destinations.php?id=' + id);
+    if (!r || r.status !== 200) return;
+    d = r.data;
+    destDataCache[id] = d;
+  }
+  var detail = '<div style="margin-bottom:12px;line-height:2;">';
+  detail += '<strong>Country:</strong> ' + esc(d.Country || '') + '<br>';
+  detail += '<strong>Region:</strong> ' + esc(d.Region || '') + '<br>';
+  detail += '<strong>Restaurants:</strong> ' + (d.RestaurantCount || 0) + '</div>';
+  detail += '<p style="line-height:1.8;">' + esc(d.Description || '') + '</p>';
+  showDetailModal(d.Name || 'Destination', detail);
+}
+
+async function loadDestinations() {
+  var wasChecked = document.getElementById('destBookedOnly') ? document.getElementById('destBookedOnly').checked : false;
+  var html = '<h2>Destinations</h2><div class="inline-form"><div class="field"><label><input type="checkbox" id="destBookedOnly" onchange="loadDestinations()"> Only from my packages</label></div></div><div class="cards"><div class="empty">Loading...</div></div>';
+  document.getElementById('mainContent').innerHTML = html;
+  if (wasChecked) document.getElementById('destBookedOnly').checked = true;
+  var cardsHtml = '';
+  if (wasChecked) {
+    var bookedItems = await getBookedItemIds('dest', 'destinations', 'DestinationID');
+    if (bookedItems.length === 0) {
+      cardsHtml = '<div class="empty"><strong>No destinations in your packages</strong></div>';
+    } else {
+      var results = await Promise.all(bookedItems.map(function(id) { return apiCall('destinations.php?id=' + id); }));
+      results.forEach(function(r) {
+        if (r && r.data && r.data.DestinationID) {
+          var d = r.data;
+          destDataCache[d.DestinationID] = d;
+          cardsHtml += buildDestCard(d);
+        }
+      });
+    }
+  } else {
+    var r = await apiCall('destinations.php');
+    if (Array.isArray(r.data)) r.data.forEach(function(d) {
+      destDataCache[d.DestinationID] = d;
+      cardsHtml += buildDestCard(d);
+    });
+  }
+  document.querySelector('#mainContent .cards').innerHTML = cardsHtml;
+  if (wasChecked) document.getElementById('destBookedOnly').checked = true;
+}
+
+function buildDestCard(d) {
+  return '<div class="card card-rich clickable" onclick="showDestDetail(' + d.DestinationID + ')">' +
+    '<div class="cr-thumb"><img src="' + imgUrl('dest', d.DestinationID) + '" alt="" loading="lazy" onerror="this.src=\'' + imgUrl('dest', d.DestinationID + 3) + '\'">' +
+    '<span class="img-tag">' + esc(d.Country || '') + '</span></div>' +
+    '<div class="cr-body"><h3>' + esc(d.Name || '---') + '</h3>' +
+    '<div class="cr-meta"><span>' + esc(d.Region || '') + '</span><span>' + (d.RestaurantCount || 0) + ' restaurants</span></div>' +
+    '<p class="cr-desc">' + esc((d.Description || '').substring(0, 140)) + '</p></div></div>';
+}
+
+async function getBookedItemIds(dataKey, key, idField) {
+  var bookedIds = await getBookedPackageIds();
+  if (bookedIds.length === 0) return [];
+  var results = await Promise.all(bookedIds.map(function(id) { return apiCall('packages.php?id=' + id); }));
+  var ids = [];
+  results.forEach(function(r) {
+    if (r && r.data && r.data[key]) {
+      r.data[key].forEach(function(item) { ids.push(item[idField]); });
+    }
+  });
+  return [...new Set(ids)];
+}
+
+// ---- FLIGHTS ----
 async function loadFlights() {
-  const r = await apiCall('flights.php');
-  let html = '<h2>Flights</h2><div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Fare</th><th>Airline</th></tr>';
-  if (Array.isArray(r.data)) r.data.forEach(f => {
-    html += `<tr><td>${f.FlightID}</td><td>${f.Origin}</td><td>${f.Destination}</td><td>${f.DepartureTime}</td><td>${f.ArrivalTime}</td><td>R${Number(f.Fare).toLocaleString()}</td><td>${f.AirlineName || '---'}</td></tr>`;
+  const bookedIds = await getBookedPackageIds();
+  let html = '<h2>Flights</h2>';
+  if (bookedIds.length === 0) {
+    html += '<div class="empty"><strong>No bookings yet</strong><p>Book a package first to see your flights here.</p></div>';
+    document.getElementById('mainContent').innerHTML = html;
+    return;
+  }
+  const results = await Promise.all(bookedIds.map(function(id) { return apiCall('packages.php?id=' + id); }));
+  const seen = {};
+  const flights = [];
+  results.forEach(function(r) {
+    if (r && r.data && r.data.flights) {
+      r.data.flights.forEach(function(f) {
+        if (!seen[f.FlightID]) { seen[f.FlightID] = true; flights.push(f); }
+      });
+    }
+  });
+  html += '<div class="tbl-wrap"><table class="tbl"><tr><th>ID</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Fare</th><th>Airline</th></tr>';
+  if (flights.length === 0) html += '<tr><td colspan="7">No flights in your packages</td></tr>';
+  else flights.forEach(function(f) {
+    html += '<tr><td>' + f.FlightID + '</td><td>' + esc(f.Origin) + '</td><td>' + esc(f.Destination) + '</td><td>' + esc(f.DepartureTime) + '</td><td>' + esc(f.ArrivalTime) + '</td><td>R' + Number(f.Fare).toLocaleString() + '</td><td>' + esc(f.AirlineName || '---') + '</td></tr>';
   });
   html += '</table></div>';
   document.getElementById('mainContent').innerHTML = html;
 }
 
+async function getBookedPackageIds() {
+  try {
+    var r = await apiCall('bookings.php');
+    if (r && Array.isArray(r.data)) return r.data.map(function(b) { return b.PackageID; }).filter(function(id) { return id; });
+  } catch(e) {}
+  return [];
+}
+
+async function getBookedItems(key) {
+  var bookedIds = await getBookedPackageIds();
+  if (bookedIds.length === 0) return [];
+  var results = await Promise.all(bookedIds.map(function(id) { return apiCall('packages.php?id=' + id); }));
+  var seen = {};
+  var items = [];
+  results.forEach(function(r) {
+    if (r && r.data && r.data[key]) {
+      r.data[key].forEach(function(item) {
+        var itemId = item[key === 'accommodations' ? 'AccommodationID' : key === 'attractions' ? 'AttractionID' : 'RestaurantID'];
+        if (!seen[itemId]) { seen[itemId] = true; items.push(item); }
+      });
+    }
+  });
+  return items;
+}
+
+// ---- ACCOMMODATIONS ----
 async function loadAccommodations() {
-  const r = await apiCall('accommodations.php');
-  let html = '<h2>Accommodations</h2><div class="cards">';
-  if (Array.isArray(r.data)) r.data.forEach(a => {
-    html += `<div class="card"><div class="body">
-      <span class="badge badge-agency">${a.AccommodationType || '---'}</span>
-      <h3 style="margin-top:8px;">${a.Location || 'Accommodation #'+a.AccommodationID}</h3>
-      <div class="price"><strong>R${Number(a.Price || 0).toLocaleString()}</strong></div>
-    </div></div>`;
-  });
-  html += '</div>';
+  var wasChecked = document.getElementById('accBookedOnly') ? document.getElementById('accBookedOnly').checked : false;
+  var html = '<h2>Accommodations</h2><div class="inline-form"><div class="field"><label><input type="checkbox" id="accBookedOnly" onchange="loadAccommodations()"> Only from my packages</label></div></div><div class="cards"><div class="empty">Loading...</div></div>';
   document.getElementById('mainContent').innerHTML = html;
+  if (wasChecked) document.getElementById('accBookedOnly').checked = true;
+  var data = wasChecked ? await getBookedItems('accommodations') : ((await apiCall('accommodations.php')).data);
+  var cardsHtml = '';
+  if (!data || data.length === 0) {
+    cardsHtml = '<div class="empty"><strong>No accommodations' + (wasChecked ? ' in your packages' : ' available') + '</strong></div>';
+  } else {
+    data.forEach(function(a) {
+      var detail = '<strong>Type:</strong> ' + esc(a.AccommodationType || 'N/A') + '<br><strong>Price:</strong> R' + Number(a.Price || 0).toLocaleString() + '/night';
+      if (a.DestinationName) detail += '<br><strong>Destination:</strong> ' + esc(a.DestinationName);
+      if (a.DestinationCountry) detail += ', ' + esc(a.DestinationCountry);
+      if (a.details) {
+        var d = a.details;
+        if (d.BedType) detail += '<br><strong>Bed:</strong> ' + esc(d.BedType);
+        if (d.Stars) detail += '<br><strong>Stars:</strong> ' + d.Stars;
+        if (d.ResortType) detail += '<br><strong>Resort Type:</strong> ' + esc(d.ResortType);
+        if (d.Bedrooms) detail += '<br><strong>Bedrooms:</strong> ' + d.Bedrooms;
+      }
+      cardsHtml += '<div class="card card-rich clickable" onclick="showAccomDetail(' + a.AccommodationID + ',\'' + esc(a.Location || '') + '\')"><div class="cr-thumb"><img src="' + imgUrl('hotel', a.AccommodationID) + '" alt=""><span class="img-tag">' + esc(a.AccommodationType || 'Stay') + '</span></div><div class="cr-body"><h3>' + esc(a.Location || '#') + '</h3><p style="font-size:12px;color:var(--muted);">' + esc(a.AccommodationType || '') + '</p><div class="cr-footer"><div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:900;">R' + Number(a.Price || 0).toLocaleString() + '<span style="font-size:11px;color:var(--muted);">/night</span></div></div></div></div>';
+    });
+  }
+  document.querySelector('#mainContent .cards').innerHTML = cardsHtml;
+  if (wasChecked) document.getElementById('accBookedOnly').checked = true;
 }
 
+// ---- ATTRACTIONS ----
 async function loadAttractions() {
-  const r = await apiCall('attractions.php');
-  let html = '<h2>Tourist Attractions</h2><div class="cards">';
-  if (Array.isArray(r.data)) r.data.forEach(a => {
-    html += `<div class="card"><div class="body">
-      <span class="badge badge-primary">${a.Type || 'Attraction'}</span>
-      <h3 style="margin-top:8px;">${a.Name || '---'}</h3>
-      <p style="font-size:12px;color:var(--muted);">${a.Location || ''}</p>
-      <div class="price"><strong>R${Number(a.Price || 0).toLocaleString()}</strong></div>
-    </div></div>`;
-  });
-  html += '</div>';
+  var wasChecked = document.getElementById('attrBookedOnly') ? document.getElementById('attrBookedOnly').checked : false;
+  var html = '<h2>Tourist Attractions</h2><div class="inline-form"><div class="field"><label><input type="checkbox" id="attrBookedOnly" onchange="loadAttractions()"> Only from my packages</label></div></div><div class="cards"><div class="empty">Loading...</div></div>';
   document.getElementById('mainContent').innerHTML = html;
+  if (wasChecked) document.getElementById('attrBookedOnly').checked = true;
+  var data = wasChecked ? await getBookedItems('attractions') : ((await apiCall('attractions.php')).data);
+  var cardsHtml = '';
+  if (!data || data.length === 0) {
+    cardsHtml = '<div class="empty"><strong>No attractions' + (wasChecked ? ' in your packages' : ' available') + '</strong></div>';
+  } else {
+    data.forEach(function(a) {
+      cardsHtml += '<div class="card card-rich clickable" onclick="showAttrDetail(' + a.AttractionID + ',\'' + esc(a.Name || '') + '\')"><div class="cr-thumb"><img src="' + imgUrl('attr', a.AttractionID) + '" alt=""><span class="img-tag">' + esc(a.Type || '') + '</span></div><div class="cr-body"><div class="cr-meta"><span>' + esc(a.Location || '') + '</span></div><h3>' + esc(a.Name || '---') + '</h3><div class="cr-footer"><div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:900;">R' + Number(a.Price || 0).toLocaleString() + '</div></div></div></div>';
+    });
+  }
+  document.querySelector('#mainContent .cards').innerHTML = cardsHtml;
+  if (wasChecked) document.getElementById('attrBookedOnly').checked = true;
 }
 
+// ---- RESTAURANTS ----
 async function loadRestaurants() {
-  const r = await apiCall('restaurants.php');
-  let html = '<h2>Restaurants</h2><div class="cards">';
-  if (Array.isArray(r.data)) r.data.forEach(r2 => {
-    html += `<div class="card"><div class="body">
-      <h3>${r2.Name || '---'}</h3>
-      <p style="font-size:11px;color:var(--muted);">Price: ${r2.PriceRange || '---'}</p>
-      <p style="font-size:11px;">Cuisine: ${r2.CuisineTypes || '---'}</p>
-      <p style="font-size:11px;">Locations: ${r2.Locations || '---'}</p>
-    </div></div>`;
-  });
-  html += '</div>';
+  var wasChecked = document.getElementById('restBookedOnly') ? document.getElementById('restBookedOnly').checked : false;
+  var html = '<h2>Restaurants</h2><div class="inline-form"><div class="field"><label><input type="checkbox" id="restBookedOnly" onchange="loadRestaurants()"> Only from my packages</label></div></div><div class="cards"><div class="empty">Loading...</div></div>';
   document.getElementById('mainContent').innerHTML = html;
+  if (wasChecked) document.getElementById('restBookedOnly').checked = true;
+  var data = wasChecked ? await getBookedItems('restaurants') : ((await apiCall('restaurants.php')).data);
+  var cardsHtml = '';
+  if (!data || data.length === 0) {
+    cardsHtml = '<div class="empty"><strong>No restaurants' + (wasChecked ? ' in your packages' : ' available') + '</strong></div>';
+  } else {
+    data.forEach(function(r2) {
+      cardsHtml += '<div class="card card-rich clickable" onclick="showRestDetail(' + r2.RestaurantID + ',\'' + esc(r2.Name || '') + '\')"><div class="cr-thumb"><img src="' + imgUrl('rest', r2.RestaurantID) + '" alt=""><span class="img-tag">' + esc(r2.PriceRange || 'Dining') + '</span></div><div class="cr-body"><h3>' + esc(r2.Name || '---') + '</h3><p style="font-size:11px;"><span style="color:var(--muted);">Cuisine:</span> ' + esc(r2.CuisineTypes || 'Various') + '</p><p style="font-size:11px;"><span style="color:var(--muted);">Location:</span> ' + esc(r2.Locations || '---') + '</p></div></div>';
+    });
+  }
+  document.querySelector('#mainContent .cards').innerHTML = cardsHtml;
+  if (wasChecked) document.getElementById('restBookedOnly').checked = true;
+}
+
+async function showAccomDetail(id, title) {
+  showDetailModal(title, '<div style="text-align:center;padding:20px;">Loading...</div>');
+  try {
+    var r = await apiCall('accommodations.php?id=' + id);
+    if (!r || r.status !== 200) return;
+    var a = r.data;
+    var detail = '<strong>Type:</strong> ' + esc(a.AccommodationType || 'N/A') + '<br><strong>Price:</strong> R' + Number(a.Price || 0).toLocaleString() + '/night';
+    if (a.DestinationName) detail += '<br><strong>Destination:</strong> ' + esc(a.DestinationName);
+    if (a.DestinationCountry) detail += ', ' + esc(a.DestinationCountry);
+    if (a.details) {
+      var d = a.details;
+      if (d.BedType) detail += '<br><strong>Bed:</strong> ' + esc(d.BedType);
+      if (d.Stars !== undefined && d.Stars !== null) detail += '<br><strong>Stars:</strong> ' + d.Stars;
+      if (d.ResortType) detail += '<br><strong>Resort Type:</strong> ' + esc(d.ResortType);
+      if (d.Bedrooms !== undefined && d.Bedrooms !== null) detail += '<br><strong>Bedrooms:</strong> ' + d.Bedrooms;
+    }
+    var modalBox = document.querySelector('.modal-overlay .modal-box');
+    if (modalBox) modalBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;"><h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;">' + esc(title) + '</h2><button class="btn" style="padding:6px 10px;font-size:10px;" onclick="this.closest(\'.modal-overlay\').remove()">Close</button></div><div style="font-size:14px;line-height:2;">' + detail + '</div>';
+  } catch(e) {}
+}
+
+async function showAttrDetail(id, title) {
+  showDetailModal(title, '<div style="text-align:center;padding:20px;">Loading...</div>');
+  try {
+    var r = await apiCall('attractions.php?id=' + id);
+    if (!r || r.status !== 200) return;
+    var a = r.data;
+    var detail = '<strong>Type:</strong> ' + esc(a.Type || 'N/A') + '<br><strong>Location:</strong> ' + esc(a.Location || 'N/A') + '<br><strong>Price:</strong> R' + Number(a.Price || 0).toLocaleString();
+    var modalBox = document.querySelector('.modal-overlay .modal-box');
+    if (modalBox) modalBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;"><h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;">' + esc(title) + '</h2><button class="btn" style="padding:6px 10px;font-size:10px;" onclick="this.closest(\'.modal-overlay\').remove()">Close</button></div><div style="font-size:14px;line-height:2;">' + detail + '</div>';
+  } catch(e) {}
+}
+
+async function showRestDetail(id, title) {
+  showDetailModal(title, '<div style="text-align:center;padding:20px;">Loading...</div>');
+  try {
+    var r = await apiCall('restaurants.php?id=' + id);
+    if (!r || r.status !== 200) return;
+    var a = r.data;
+    var detail = '<strong>Price Range:</strong> ' + esc(a.PriceRange || 'N/A') + '<br><strong>Cuisine:</strong> ' + esc(a.CuisineTypes || 'Various') + '<br><strong>Location:</strong> ' + esc(a.Locations || 'N/A');
+    var modalBox = document.querySelector('.modal-overlay .modal-box');
+    if (modalBox) modalBox.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px;"><h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;">' + esc(title) + '</h2><button class="btn" style="padding:6px 10px;font-size:10px;" onclick="this.closest(\'.modal-overlay\').remove()">Close</button></div><div style="font-size:14px;line-height:2;">' + detail + '</div>';
+  } catch(e) {}
 }
 
 async function logout() {
