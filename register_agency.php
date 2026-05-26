@@ -23,7 +23,6 @@ $stmt->execute([$_POST['Name']]);
 if ($stmt->fetch()) {
     respond(409, ['error' => 'Agency name already registered']);
 }
-
 $hash = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
 $stmt = $pdo->prepare(
@@ -32,3 +31,6 @@ $stmt = $pdo->prepare(
 $stmt->execute([$_POST['Name'], $_POST['Website'], $_POST['Type'], $hash]);
 
 respond(201, ['message' => 'Agency registered']);
+
+?>
+

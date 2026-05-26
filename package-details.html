@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Package Details — Tripistry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a href="index.html" class="logo">Trip<span>istry</span></a>
+    <div class="nav-cta" id="navCta">
+      <a href="login-traveller.html" class="btn btn-ghost">Traveller Login</a>
+      <a href="login-agency.html" class="btn btn-primary">Agency Portal</a>
+    </div>
+  </div>
+</nav>
+
+<main class="container" style="padding:40px 20px 80px;" id="mainContent">
+  <div style="text-align:center;padding:80px 20px;"><div class="pulse"></div><p style="margin-top:16px;color:var(--muted);">Loading package details...</p></div>
+</main>
+
+<div class="modal-overlay" id="bookModal" style="display:none;">
+  <div class="modal-box" style="background:white;border:3px solid var(--ink);box-shadow:var(--shadow);padding:40px;max-width:560px;width:90%;">
+    <h2 style="font-family:'Outfit',sans-serif;text-transform:uppercase;margin-bottom:16px;">Confirm Booking</h2>
+    <div id="modalPkgInfo"></div>
+    <div style="margin-top:20px;font-size:13px;color:var(--muted);">
+      <p>By confirming, you agree to book this package. You will be redirected to your dashboard.</p>
+    </div>
+    <div style="margin-top:24px;display:flex;gap:12px;">
+      <button class="btn btn-primary" id="confirmBookBtn" style="flex:1;">Confirm Booking</button>
+      <button class="btn" onclick="closeBookModal()" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+const API = 'api/';
+let currentUser = null;
+let currentPackage = null;
+let csrfToken = '';
+
+async function apiCall(url, options) {
+  options = options || {};
+  var headers = options.headers || {};
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  options.headers = headers;
+  options.credentials = 'same-origin';
+  var res = await fetch(API + url, options);
+  if (res.status === 401) { window.location.href = 'login-traveller.html'; return null; }
+  var data;
+  try { data = await res.json(); } catch(e) { data = {}; }
+  return { status: res.status, data: data };
+}
+
+function imgUrl(pool, seed) {
+  const IMG = {
+    dest: ['https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1473221326025-9183b464bb7e?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&h=400&fit=crop'],
+    hotel: ['https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1582719508461-905c673771fd?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?w=600&h=400&fit=crop'],
+    attr: ['https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1500534623283-312aade485b7?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1549877452-9c387954fbc2?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop'],
+    rest: ['https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1552566626-52f8b828add9?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=600&h=400&fit=crop','https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop'],
+  };
+  return IMG[pool][(seed || 1) % IMG[pool].length];
+}
+
+function esc(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function stars(n) {
+  let s = ''; for (let i = 1; i <= 5; i++) s += i <= n ? '\u2605' : '\u2606'; return s;
+}
+
+function toast(msg, type) {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + (type || 'info');
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(function() { el.remove(); }, 3000);
+}
+
+function openBookModal() {
+  if (!currentUser) { window.location.href = 'login-traveller.html'; return; }
+  var p = currentPackage;
+  var info = document.getElementById('modalPkgInfo');
+  info.innerHTML = '<div style="background:var(--bg);padding:20px;">' +
+    '<h3 style="font-family:\'Outfit\',sans-serif;">' + esc(p.Name || 'Package #' + p.PackageID) + '</h3>' +
+    '<p style="margin-top:8px;"><strong>' + esc(p.Type || 'Package') + '</strong> by ' + esc(p.AgencyName || '---') + '</p>' +
+    '<p style="margin-top:4px;">' + (p.DurationDays || 0) + ' days</p>' +
+    '<div style="font-family:\'Outfit\',sans-serif;font-size:28px;font-weight:900;margin-top:12px;">R' + Number(p.Price || 0).toLocaleString() + '</div>' +
+    '</div>';
+  document.getElementById('bookModal').style.display = 'flex';
+}
+
+function closeBookModal() {
+  document.getElementById('bookModal').style.display = 'none';
+}
+
+async function confirmBooking() {
+  var p = currentPackage;
+  var r = await apiCall('bookings.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ PackageID: p.PackageID }) });
+  if (r && r.status === 201) {
+    closeBookModal();
+    toast('Booked successfully! Redirecting...', 'success');
+    setTimeout(function() { window.location.href = 'dashboard-traveller.html'; }, 1500);
+  } else if (r && r.status === 409) {
+    toast('You have already booked this package.', 'error');
+  } else {
+    toast(r && r.data && r.data.error ? r.data.error : 'Booking failed', 'error');
+  }
+}
+
+function renderDetails(pkg) {
+  var h = '';
+
+  var heroImg = pkg.ImageURL || 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=600&fit=crop';
+
+  h += '<a href="javascript:history.back()" class="btn" style="display:inline-flex;align-items:center;gap:6px;margin-bottom:0;padding:10px 18px;font-size:12px;font-weight:700;position:relative;top:-8px;">&larr; Back</a>';
+
+  h += '<div style="position:relative;background:url(\'' + heroImg + '\') center/cover;min-height:420px;display:flex;align-items:flex-end;margin-bottom:36px;box-shadow:12px 12px 0 var(--ink);">';
+  h += '<div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(15,42,46,0.95) 0%,rgba(15,42,46,0.4) 60%,rgba(15,42,46,0.2) 100%);"></div>';
+  h += '<div style="position:relative;z-index:1;padding:48px 40px 36px;width:100%;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:24px;">';
+  h += '<div style="flex:1;min-width:280px;">';
+  h += '<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">';
+  h += '<span style="background:var(--primary);color:white;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.2em;">' + esc(pkg.Type).toUpperCase() + '</span>';
+  h += '<span style="background:rgba(255,255,255,0.15);color:white;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.1em;">' + (pkg.DurationDays || 0) + ' DAYS</span>';
+  if (pkg.IncludesLodging) h += '<span style="background:rgba(255,255,255,0.15);color:white;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.1em;">LODGING</span>';
+  if (pkg.IncludesService) h += '<span style="background:rgba(255,255,255,0.15);color:white;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.1em;">SERVICE</span>';
+  if (pkg.IncludesActivities) h += '<span style="background:rgba(255,255,255,0.15);color:white;padding:5px 14px;font-size:10px;font-weight:800;letter-spacing:0.1em;">ACTIVITIES</span>';
+  h += '</div>';
+  h += '<h1 style="font-family:\'Outfit\',sans-serif;font-size:clamp(30px,5vw,44px);font-weight:900;text-transform:uppercase;line-height:1.05;color:white;text-shadow:0 2px 8px rgba(0,0,0,0.3);">' + esc(pkg.Name || 'Package #' + pkg.PackageID) + '</h1>';
+  h += '<p style="margin-top:8px;font-size:14px;color:rgba(255,255,255,0.7);">by ' + esc(pkg.AgencyName || '---') + ' &nbsp; <span style="color:#e6a500;">' + stars(Math.round(pkg.AgencyRating || 0)) + '</span></p>';
+  h += '</div>';
+  h += '<div style="text-align:right;min-width:180px;background:rgba(0,0,0,0.4);backdrop-filter:blur(10px);padding:24px;border:1px solid rgba(255,255,255,0.1);">';
+  h += '<div style="font-size:10px;font-weight:800;color:rgba(255,255,255,0.5);letter-spacing:0.2em;margin-bottom:4px;">FROM</div>';
+  h += '<div style="font-family:\'Outfit\',sans-serif;font-size:clamp(32px,4vw,48px);font-weight:900;color:white;line-height:1;">R' + Number(pkg.Price || 0).toLocaleString() + '</div>';
+  h += '<div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;">per person</div>';
+  if (!currentUser || currentUser.user_type === 'traveller') {
+    h += '<button class="btn" style="margin-top:16px;padding:12px 24px;font-size:12px;font-weight:800;background:var(--primary);color:white;border-color:var(--primary);width:100%;" onclick="openBookModal()">Book Now</button>';
+  }
+  h += '</div></div></div>';
+
+  if (pkg.Itinerary) {
+    h += '<div style="margin-bottom:36px;">';
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Itinerary</h2>';
+    h += '<div style="background:var(--bg);border-left:5px solid var(--primary);padding:24px 28px;font-size:14px;line-height:2.2;white-space:pre-wrap;box-shadow:4px 4px 0 var(--ink);">' + esc(pkg.Itinerary) + '</div></div>';
+  }
+
+  if (pkg.destinations && pkg.destinations.length) {
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Destinations</h2>';
+    h += '<div class="cards" style="margin-bottom:40px;">';
+    pkg.destinations.forEach(function(d) {
+      h += '<div class="card card-rich"><div class="cr-thumb"><img src="' + imgUrl('dest', d.DestinationID) + '" alt="" loading="lazy"><span class="img-tag">' + esc(d.Country) + '</span></div><div class="cr-body"><h3>' + esc(d.Name) + '</h3><p style="font-size:12px;color:var(--muted);">' + esc((d.Description || '').substring(0, 120)) + '</p><p style="font-size:11px;margin-top:4px;">' + esc(d.Region || '') + '</p></div></div>';
+    });
+    h += '</div>';
+  }
+
+  if (pkg.accommodations && pkg.accommodations.length) {
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Accommodations</h2>';
+    h += '<div class="cards" style="margin-bottom:40px;">';
+    pkg.accommodations.forEach(function(a) {
+      var loc = a.Location || 'Accommodation #' + a.AccommodationID;
+      h += '<div class="card card-rich"><div class="cr-thumb"><img src="' + imgUrl('hotel', a.AccommodationID) + '" alt="" loading="lazy"><span class="img-tag">' + esc(a.AccommodationType || 'Stay') + '</span></div><div class="cr-body"><div class="cr-meta"><span>' + esc(a.DestinationName || '') + '</span></div><h3>' + esc(loc) + '</h3><div class="cr-footer"><div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:900;">R' + Number(a.Price || 0).toLocaleString() + '<span style="font-size:11px;color:var(--muted);">/night</span></div></div></div></div>';
+    });
+    h += '</div>';
+  }
+
+  if (pkg.flights && pkg.flights.length) {
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Flights</h2>';
+    h += '<div class="tbl-wrap" style="margin-bottom:40px;"><table class="tbl"><thead><tr><th>Airline</th><th>From</th><th>To</th><th>Departure</th><th>Arrival</th><th>Fare</th></tr></thead><tbody>';
+    pkg.flights.forEach(function(f) {
+      h += '<tr><td>' + esc(f.AirlineName || '---') + '</td><td>' + esc(f.Origin) + '</td><td>' + esc(f.Destination) + '</td><td>' + esc(f.DepartureTime) + '</td><td>' + esc(f.ArrivalTime) + '</td><td>R' + Number(f.Fare || 0).toLocaleString() + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  }
+
+  if (pkg.attractions && pkg.attractions.length) {
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Attractions &amp; Activities</h2>';
+    h += '<div class="cards" style="margin-bottom:40px;">';
+    pkg.attractions.forEach(function(a) {
+      h += '<div class="card card-rich"><div class="cr-thumb"><img src="' + imgUrl('attr', a.AttractionID) + '" alt="" loading="lazy"><span class="img-tag">' + esc(a.Type) + '</span></div><div class="cr-body"><div class="cr-meta"><span>' + esc(a.Location || '') + '</span></div><h3>' + esc(a.Name) + '</h3><div class="cr-footer"><div style="font-family:\'Outfit\',sans-serif;font-size:20px;font-weight:900;">R' + Number(a.Price || 0).toLocaleString() + '</div></div></div></div>';
+    });
+    h += '</div>';
+  }
+
+  if (pkg.restaurants && pkg.restaurants.length) {
+    h += '<h2 style="font-family:\'Outfit\',sans-serif;text-transform:uppercase;margin-bottom:16px;font-size:18px;letter-spacing:0.05em;">Restaurants</h2>';
+    h += '<div class="cards" style="margin-bottom:40px;">';
+    pkg.restaurants.forEach(function(r2) {
+      h += '<div class="card card-rich"><div class="cr-thumb"><img src="' + imgUrl('rest', r2.RestaurantID) + '" alt="" loading="lazy"><span class="img-tag">' + esc(r2.PriceRange || 'Dining') + '</span></div><div class="cr-body"><h3>' + esc(r2.Name) + '</h3><p style="font-size:11px;margin-top:4px;"><span style="color:var(--muted);">Cuisine:</span> ' + esc(r2.CuisineTypes || 'Various') + '</p><p style="font-size:11px;"><span style="color:var(--muted);">Location:</span> ' + esc(r2.Locations || '---') + '</p></div></div>';
+    });
+    h += '</div>';
+  }
+
+  document.getElementById('mainContent').innerHTML = h;
+}
+
+async function init() {
+  var params = new URLSearchParams(window.location.search);
+  var pkgId = params.get('id');
+  if (!pkgId) {
+    document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:80px;"><h2 style="font-family:\'Outfit\',sans-serif;">Package not found</h2><p style="margin-top:12px;">No package ID specified.</p><a href="index.html" class="btn btn-primary" style="margin-top:20px;">Browse Packages</a></div>';
+    return;
+  }
+
+  try {
+    var sr = await apiCall('session.php');
+    if (sr && sr.status === 200) {
+      currentUser = sr.data;
+      csrfToken = sr.data.csrf_token || '';
+      var cta = document.getElementById('navCta');
+      if (cta) {
+        var dashLink = currentUser.user_type === 'agency' ? 'dashboard-agency.html' : 'dashboard-traveller.html';
+        cta.innerHTML = '<span style="font-size:13px;color:var(--muted);margin-right:12px;">' + esc(currentUser.name || '') + '</span><a href="' + dashLink + '" class="btn btn-primary">Dashboard</a>';
+      }
+    }
+  } catch(ex) {}
+
+  try {
+    var r = await fetch(API + 'packages.php?id=' + pkgId);
+    var pkg = await r.json();
+    if (!pkg || r.status !== 200) {
+      document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:80px;"><h2 style="font-family:\'Outfit\',sans-serif;">Package not found</h2><p style="margin-top:12px;">The package you requested does not exist.</p><a href="index.html" class="btn btn-primary" style="margin-top:20px;">Browse Packages</a></div>';
+      return;
+    }
+    currentPackage = pkg;
+    renderDetails(pkg);
+  } catch(e) {
+    document.getElementById('mainContent').innerHTML = '<div style="text-align:center;padding:80px;"><h2 style="font-family:\'Outfit\',sans-serif;">Error</h2><p style="margin-top:12px;">Could not load package. Is XAMPP running?</p><a href="index.html" class="btn" style="margin-top:20px;">Back to home</a></div>';
+  }
+}
+
+document.getElementById('confirmBookBtn').addEventListener('click', confirmBooking);
+document.getElementById('bookModal').addEventListener('click', function(e) {
+  if (e.target === this) closeBookModal();
+});
+
+init();
+</script>
+</body>
+</html>
